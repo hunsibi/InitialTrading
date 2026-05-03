@@ -1,0 +1,193 @@
+"""
+send_telegram.py  -  weekly quant report -> telegram
+"""
+import os, glob, re, requests
+from datetime import datetime, timedelta
+
+BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
+REPORT_DIR = os.path.join(BASE_DIR, 'outputs', 'reports')
+
+try:
+    import telegram_config as cfg
+    BOT_TOKEN = cfg.BOT_TOKEN
+    CHAT_ID   = str(cfg.CHAT_ID)
+except ImportError:
+    print("  [오류] telegram_config.py 없음")
+    exit(1)
+
+TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
+
+RANK_ICO = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣"]
+
+
+def load_data() -> dict:
+    patterns = sorted(glob.glob(os.path.join(REPORT_DIR, 'weekly_full_*.html')), reverse=True)
+    if not patterns:
+        raise FileNotFoundError("weekly_full_*.html 없음. generate_report.py 먼저 실행하세요.")
+    data_file = patterns[0]
+    print(f"  데이터 파일: {data_file}")
+    d = {}
+    with open(data_file, encoding='utf-8') as f:
+        for line in f:
+            line = line.rstrip('\n')
+            if '=' in line and not line.startswith('PORT|'):
+                k, _, v = line.partition('=')
+                d[k] = v
+    d['__file__'] = data_file
+    return d
+
+
+def g(d, k):
+    return d.get(k, '')
+
+
+def fi(v):
+    try:    return f"{int(v):,}"
+    except: return str(v)
+
+
+def sp(v):
+    try:
+        return ('+' if float(v) >= 0 else '') + str(v) + '%'
+    except:
+        return str(v) + '%'
+
+
+def next_mon(date_str):
+    try:
+        dt  = datetime.strptime(date_str, '%Y-%m-%d')
+        gap = (7 - dt.weekday()) % 7
+        return (dt + timedelta(days=(gap or 7))).strftime('%Y-%m-%d')
+    except:
+        return ''
+
+
+def build_summary(d):
+    date   = g(d,'DATE')
+    nm     = next_mon(date)
+    kr     = float(g(d,'KOSPI_RET')  or 0)
+    qr     = float(g(d,'KOSDAQ_RET') or 0)
+    ki     = "\U0001f4c8" if kr>=0 else "\U0001f4c9"
+    qi     = "\U0001f4c8" if qr>=0 else "\U0001f4c9"
+    lines  = [
+        "\U0001f4ca *주간 퀀트 리포트*",
+        f"기준일: {date}  |  투자일: {nm}",
+        "",
+        "━━━ 이번 주 시장 ━━━",
+        f"{ki} KOSPI  `{kr:+.2f}%`  상승 {g(d,'KOSPI_UP')} / 하락 {g(d,'KOSPI_DN')}",
+        f"{qi} KOSDAQ `{qr:+.2f}%`  상승 {g(d,'KOSDAQ_UP')} / 하락 {g(d,'KOSDAQ_DN')}",
+        "",
+        "━━━ 차주 유망 TOP 5 ━━━",
+    ]
+    for i in range(5):
+        lines += [
+            "",
+            f"{RANK_ICO[i]} *{g(d,f'S{i}_NAME')}* `{g(d,f'S{i}_CODE')}` {g(d,f'S{i}_MKT')}",
+            f"   현재가 `{fi(g(d,f'S{i}_CLOSE'))}원`  주간 `{sp(g(d,f'S{i}_R1W'))}`  12주 `{sp(g(d,f'S{i}_R12W'))}`",
+            f"   RSI `{g(d,f'S{i}_RSI')}`  거래량 `{g(d,f'S{i}_VOLR')}배`",
+            f"   매수 `{fi(g(d,f'S{i}_ENTRY'))}`  손절 `{fi(g(d,f'S{i}_STOP'))}`({g(d,f'S{i}_STOP_PCT')}%)",
+            f"   목표1 `{fi(g(d,f'S{i}_T1'))}`(+{g(d,f'S{i}_T1_PCT')}%)  목표2 `{fi(g(d,f'S{i}_T2'))}`(+{g(d,f'S{i}_T2_PCT')}%)",
+        ]
+    lines += ["", "⚠️ _퀀트 모델 자동 산출 — 투자 손익 책임은 본인에게 있습니다_"]
+    return '\n'.join(lines)
+
+
+def build_detail(d, i):
+    clean = lambda s: re.sub(r'<[^>]+>', '', s)
+    reasons_raw = g(d, f'S{i}_REASONS')
+    reasons = [clean(r) for r in reasons_raw.split('|')] if reasons_raw else []
+    caution = clean(g(d, f'S{i}_CAUTION'))
+    lines = [
+        f"{RANK_ICO[i]} *{g(d,f'S{i}_NAME')}* `{g(d,f'S{i}_CODE')}` {g(d,f'S{i}_MKT')}",
+        "",
+        "*[지표]*",
+        f"현재가 `{fi(g(d,f'S{i}_CLOSE'))}원`  점수 `{g(d,f'S{i}_SCORE')}`",
+        f"주간 `{sp(g(d,f'S{i}_R1W'))}`  4주 `{sp(g(d,f'S{i}_R4W'))}`  12주 `{sp(g(d,f'S{i}_R12W'))}`",
+        f"RSI `{g(d,f'S{i}_RSI')}`  거래량 `{g(d,f'S{i}_VOLR')}배`",
+        f"MA20 `{fi(g(d,f'S{i}_MA20'))}`  MA60 `{fi(g(d,f'S{i}_MA60'))}`",
+        "",
+        "*[매매 레벨]*",
+        f"매수  `{fi(g(d,f'S{i}_ENTRY'))}원`",
+        f"손절  `{fi(g(d,f'S{i}_STOP'))}원` ({g(d,f'S{i}_STOP_PCT')}%)",
+        f"목표1 `{fi(g(d,f'S{i}_T1'))}원` (+{g(d,f'S{i}_T1_PCT')}%)",
+        f"목표2 `{fi(g(d,f'S{i}_T2'))}원` (+{g(d,f'S{i}_T2_PCT')}%)",
+    ]
+    if reasons:
+        lines += ["", "*[선정 이유]*"] + [f"- {r}" for r in reasons[:5]]
+    if caution:
+        lines += ["", f"⚠️ {caution}"]
+    return '\n'.join(lines)
+
+
+def send_msg(text):
+    try:
+        r = requests.post(f"{TELEGRAM_API}/sendMessage",
+            data={'chat_id': CHAT_ID, 'text': text, 'parse_mode': 'Markdown'},
+            timeout=15)
+        ok = r.status_code == 200 and r.json().get('ok')
+        if not ok:
+            print(f"  [전송 실패] {r.text[:150]}")
+        return ok
+    except Exception as e:
+        print(f"  [전송 오류] {type(e).__name__}")
+        return False
+
+
+def send_file(data_file, date):
+    report = os.path.join(REPORT_DIR, f'report_{date}.html')
+    if not os.path.exists(report):
+        report = data_file
+    try:
+        with open(report, 'rb') as fp:
+            r = requests.post(f"{TELEGRAM_API}/sendDocument",
+                data={'chat_id': CHAT_ID, 'caption': f"{date} 전체 리포트"},
+                files={'document': (os.path.basename(report), fp, 'text/html')},
+                timeout=60)
+        ok = r.status_code == 200 and r.json().get('ok')
+        if not ok:
+            print(f"  [파일 실패] {r.text[:150]}")
+        return ok
+    except requests.exceptions.Timeout:
+        print("  파일 업로드 타임아웃")
+        return False
+    except Exception as e:
+        print(f"  파일 오류: {type(e).__name__}")
+        return False
+
+
+def run():
+    print("\n" + "="*50)
+    print("  텔레그램 리포트 전송")
+    print("="*50)
+
+    try:
+        r = requests.get(f"{TELEGRAM_API}/getMe", timeout=10)
+        bot = r.json().get('result', {}).get('username', '?')
+        print(f"  봇 연결 OK: @{bot}")
+    except Exception as e:
+        print(f"  봇 연결 실패: {e}")
+        return
+
+    d    = load_data()
+    date = g(d, 'DATE')
+
+    print("  [1] TOP5 요약 전송...")
+    ok1 = send_msg(build_summary(d))
+    print(f"  -> {'완료' if ok1 else '실패'}")
+
+    print("  [2] HTML 파일 전송...")
+    ok2 = send_file(d['__file__'], date)
+    if ok2:
+        print("  -> 완료")
+    else:
+        print("  -> 파일 불가, 종목 상세 텍스트로 대체 전송")
+        for i in range(5):
+            ok = send_msg(build_detail(d, i))
+            print(f"     {i+1}. {g(d,f'S{i}_NAME')}: {'OK' if ok else 'FAIL'}")
+
+    print("\n  전송 완료! 텔레그램을 확인하세요.")
+    print("="*50)
+
+
+if __name__ == '__main__':
+    run()
