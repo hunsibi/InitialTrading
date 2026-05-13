@@ -1,5 +1,5 @@
 """
-send_telegram.py  -  weekly quant report -> telegram
+send_telegram.py  -  weekly quant report -> telegram (안정 대장주 TOP5 + 모멘텀 TOP5)
 """
 import os, glob, re, requests
 from datetime import datetime, timedelta
@@ -30,7 +30,7 @@ def load_data() -> dict:
     with open(data_file, encoding='utf-8') as f:
         for line in f:
             line = line.rstrip('\n')
-            if '=' in line and not line.startswith('PORT|'):
+            if '=' in line:
                 k, _, v = line.partition('=')
                 d[k] = v
     d['__file__'] = data_file
@@ -63,13 +63,13 @@ def next_mon(date_str):
 
 
 def build_summary(d):
-    date   = g(d,'DATE')
-    nm     = next_mon(date)
-    kr     = float(g(d,'KOSPI_RET')  or 0)
-    qr     = float(g(d,'KOSDAQ_RET') or 0)
-    ki     = "\U0001f4c8" if kr>=0 else "\U0001f4c9"
-    qi     = "\U0001f4c8" if qr>=0 else "\U0001f4c9"
-    lines  = [
+    date  = g(d,'DATE')
+    nm    = next_mon(date)
+    kr    = float(g(d,'KOSPI_RET')  or 0)
+    qr    = float(g(d,'KOSDAQ_RET') or 0)
+    ki    = "\U0001f4c8" if kr>=0 else "\U0001f4c9"
+    qi    = "\U0001f4c8" if qr>=0 else "\U0001f4c9"
+    lines = [
         "\U0001f4ca *주간 퀀트 리포트*",
         f"기준일: {date}  |  투자일: {nm}",
         "",
@@ -77,43 +77,77 @@ def build_summary(d):
         f"{ki} KOSPI  `{kr:+.2f}%`  상승 {g(d,'KOSPI_UP')} / 하락 {g(d,'KOSPI_DN')}",
         f"{qi} KOSDAQ `{qr:+.2f}%`  상승 {g(d,'KOSDAQ_UP')} / 하락 {g(d,'KOSDAQ_DN')}",
         "",
-        "━━━ 차주 유망 TOP 5 ━━━",
+        "━━━ 🟢 안정 대장주 TOP 5 ━━━",
+        "_시총 상위 대장주 · 추세건전성+리스크조정 기준_",
     ]
     for i in range(5):
         lines += [
             "",
-            f"{RANK_ICO[i]} *{g(d,f'S{i}_NAME')}* `{g(d,f'S{i}_CODE')}` {g(d,f'S{i}_MKT')}",
+            f"{RANK_ICO[i]} *{g(d,f'S{i}_NAME')}* `{g(d,f'S{i}_CODE')}` {g(d,f'S{i}_MKT')} · {g(d,f'S{i}_SECTOR')}",
             f"   현재가 `{fi(g(d,f'S{i}_CLOSE'))}원`  주간 `{sp(g(d,f'S{i}_R1W'))}`  12주 `{sp(g(d,f'S{i}_R12W'))}`",
             f"   RSI `{g(d,f'S{i}_RSI')}`  거래량 `{g(d,f'S{i}_VOLR')}배`",
             f"   매수 `{fi(g(d,f'S{i}_ENTRY'))}`  손절 `{fi(g(d,f'S{i}_STOP'))}`({g(d,f'S{i}_STOP_PCT')}%)",
             f"   목표1 `{fi(g(d,f'S{i}_T1'))}`(+{g(d,f'S{i}_T1_PCT')}%)  목표2 `{fi(g(d,f'S{i}_T2'))}`(+{g(d,f'S{i}_T2_PCT')}%)",
         ]
+    lines += [
+        "",
+        "━━━ 🔴 단기 모멘텀 TOP 5 ━━━",
+        "_전 종목 · 1주·4주·12주 모멘텀 기준 (고변동성 주의)_",
+    ]
+    for i in range(5):
+        lines += [
+            "",
+            f"{RANK_ICO[i]} *{g(d,f'M{i}_NAME')}* `{g(d,f'M{i}_CODE')}` {g(d,f'M{i}_MKT')}",
+            f"   현재가 `{fi(g(d,f'M{i}_CLOSE'))}원`  주간 `{sp(g(d,f'M{i}_R1W'))}`  12주 `{sp(g(d,f'M{i}_R12W'))}`",
+            f"   RSI `{g(d,f'M{i}_RSI')}`  거래량 `{g(d,f'M{i}_VOLR')}배`",
+            f"   매수 `{fi(g(d,f'M{i}_ENTRY'))}`  손절 `{fi(g(d,f'M{i}_STOP'))}`({g(d,f'M{i}_STOP_PCT')}%)",
+            f"   목표1 `{fi(g(d,f'M{i}_T1'))}`(+{g(d,f'M{i}_T1_PCT')}%)  목표2 `{fi(g(d,f'M{i}_T2'))}`(+{g(d,f'M{i}_T2_PCT')}%)",
+        ]
+    if g(d, 'E0_NAME'):
+        lines += [
+            "",
+            "━━━ 🔵 ETF 추천 TOP 5 ━━━",
+            "_퀀트 선정 유망 ETF · 레버리지·인버스 제외_",
+        ]
+        for i in range(5):
+            if not g(d, f'E{i}_NAME'):
+                break
+            lines += [
+                "",
+                f"{RANK_ICO[i]} *{g(d,f'E{i}_NAME')}* `{g(d,f'E{i}_CODE')}` {g(d,f'E{i}_MKT')}",
+                f"   테마 `{g(d,f'E{i}_SECTOR')}`",
+                f"   현재가 `{fi(g(d,f'E{i}_CLOSE'))}원`  주간 `{sp(g(d,f'E{i}_R1W'))}`  12주 `{sp(g(d,f'E{i}_R12W'))}`",
+                f"   RSI `{g(d,f'E{i}_RSI')}`  거래량 `{g(d,f'E{i}_VOLR')}배`",
+                f"   매수 `{fi(g(d,f'E{i}_ENTRY'))}`  손절 `{fi(g(d,f'E{i}_STOP'))}`({g(d,f'E{i}_STOP_PCT')}%)",
+                f"   목표1 `{fi(g(d,f'E{i}_T1'))}`(+{g(d,f'E{i}_T1_PCT')}%)  목표2 `{fi(g(d,f'E{i}_T2'))}`(+{g(d,f'E{i}_T2_PCT')}%)",
+            ]
     lines += ["", "⚠️ _퀀트 모델 자동 산출 — 투자 손익 책임은 본인에게 있습니다_"]
     return '\n'.join(lines)
 
 
-def build_detail(d, i):
+def build_detail(d, pfx, i):
     clean = lambda s: re.sub(r'<[^>]+>', '', s)
-    reasons_raw = g(d, f'S{i}_REASONS')
+    reasons_raw = g(d, f'{pfx}{i}_REASONS')
     reasons = [clean(r) for r in reasons_raw.split('|')] if reasons_raw else []
-    caution = clean(g(d, f'S{i}_CAUTION'))
+    caution = clean(g(d, f'{pfx}{i}_CAUTION'))
+    model_label = "🟢 안정 대장주" if pfx == 'S' else ("🔵 ETF 추천" if pfx == 'E' else "🔴 모멘텀")
     lines = [
-        f"{RANK_ICO[i]} *{g(d,f'S{i}_NAME')}* `{g(d,f'S{i}_CODE')}` {g(d,f'S{i}_MKT')}",
+        f"{model_label} {RANK_ICO[i]} *{g(d,f'{pfx}{i}_NAME')}* `{g(d,f'{pfx}{i}_CODE')}` {g(d,f'{pfx}{i}_MKT')}",
         "",
         "*[지표]*",
-        f"현재가 `{fi(g(d,f'S{i}_CLOSE'))}원`  점수 `{g(d,f'S{i}_SCORE')}`",
-        f"주간 `{sp(g(d,f'S{i}_R1W'))}`  4주 `{sp(g(d,f'S{i}_R4W'))}`  12주 `{sp(g(d,f'S{i}_R12W'))}`",
-        f"RSI `{g(d,f'S{i}_RSI')}`  거래량 `{g(d,f'S{i}_VOLR')}배`",
-        f"MA20 `{fi(g(d,f'S{i}_MA20'))}`  MA60 `{fi(g(d,f'S{i}_MA60'))}`",
+        f"현재가 `{fi(g(d,f'{pfx}{i}_CLOSE'))}원`  점수 `{g(d,f'{pfx}{i}_SCORE')}`",
+        f"주간 `{sp(g(d,f'{pfx}{i}_R1W'))}`  4주 `{sp(g(d,f'{pfx}{i}_R4W'))}`  12주 `{sp(g(d,f'{pfx}{i}_R12W'))}`",
+        f"RSI `{g(d,f'{pfx}{i}_RSI')}`  거래량 `{g(d,f'{pfx}{i}_VOLR')}배`",
+        f"MA20 `{fi(g(d,f'{pfx}{i}_MA20'))}`  MA60 `{fi(g(d,f'{pfx}{i}_MA60'))}`",
         "",
         "*[매매 레벨]*",
-        f"매수  `{fi(g(d,f'S{i}_ENTRY'))}원`",
-        f"손절  `{fi(g(d,f'S{i}_STOP'))}원` ({g(d,f'S{i}_STOP_PCT')}%)",
-        f"목표1 `{fi(g(d,f'S{i}_T1'))}원` (+{g(d,f'S{i}_T1_PCT')}%)",
-        f"목표2 `{fi(g(d,f'S{i}_T2'))}원` (+{g(d,f'S{i}_T2_PCT')}%)",
+        f"매수  `{fi(g(d,f'{pfx}{i}_ENTRY'))}원`",
+        f"손절  `{fi(g(d,f'{pfx}{i}_STOP'))}원` ({g(d,f'{pfx}{i}_STOP_PCT')}%)",
+        f"목표1 `{fi(g(d,f'{pfx}{i}_T1'))}원` (+{g(d,f'{pfx}{i}_T1_PCT')}%)",
+        f"목표2 `{fi(g(d,f'{pfx}{i}_T2'))}원` (+{g(d,f'{pfx}{i}_T2_PCT')}%)",
     ]
     if reasons:
-        lines += ["", "*[선정 이유]*"] + [f"- {r}" for r in reasons[:5]]
+        lines += ["", "*[선정 이유]*"] + [f"- {r}" for r in reasons[:4]]
     if caution:
         lines += ["", f"⚠️ {caution}"]
     return '\n'.join(lines)
@@ -181,9 +215,13 @@ def run():
         print("  -> 완료")
     else:
         print("  -> 파일 불가, 종목 상세 텍스트로 대체 전송")
-        for i in range(5):
-            ok = send_msg(build_detail(d, i))
-            print(f"     {i+1}. {g(d,f'S{i}_NAME')}: {'OK' if ok else 'FAIL'}")
+        for pfx, label in [('S','안정'), ('M','모멘텀'), ('E','ETF')]:
+            for i in range(5):
+                if not g(d, f'{pfx}{i}_NAME'):
+                    break
+                ok = send_msg(build_detail(d, pfx, i))
+                name = g(d, f'{pfx}{i}_NAME')
+                print(f"     [{label}] {i+1}. {name}: {'OK' if ok else 'FAIL'}")
 
     print("\n  전송 완료! 텔레그램을 확인하세요.")
     print("="*50)

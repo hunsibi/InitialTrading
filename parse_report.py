@@ -12,7 +12,7 @@ d = {}
 with open(files[0], encoding='utf-8') as f:
     for line in f:
         line = line.rstrip()
-        if '=' in line and not line.startswith('PORT|'):
+        if '=' in line:
             k, _, v = line.partition('=')
             d[k] = v
 
@@ -38,14 +38,27 @@ print(f"DATE={g('DATE')}")
 print(f"KS={g('KOSPI_RET')}%|{g('KOSPI_UP')}|{g('KOSPI_DN')}")
 print(f"KD={g('KOSDAQ_RET')}%|{g('KOSDAQ_UP')}|{g('KOSDAQ_DN')}")
 
-for i in range(5):
-    reasons_raw = g(f'S{i}_REASONS')
+def parse_stock(pfx, i):
+    reasons_raw = g(f'{pfx}{i}_REASONS')
     reasons = [re.sub(r'<[^>]+>', '', r) for r in reasons_raw.split('|')][:3] if reasons_raw else []
-    print(
-        f"S{i}={g(f'S{i}_NAME')}|{g(f'S{i}_CODE')}|{g(f'S{i}_MKT')}|"
-        f"{fi(g(f'S{i}_CLOSE'))}|{sp(g(f'S{i}_R1W'))}|{sp(g(f'S{i}_R12W'))}|"
-        f"{g(f'S{i}_RSI')}|{g(f'S{i}_VOLR')}|"
-        f"{fi(g(f'S{i}_ENTRY'))}|{fi(g(f'S{i}_STOP'))}|{g(f'S{i}_STOP_PCT')}|"
-        f"{fi(g(f'S{i}_T1'))}|{g(f'S{i}_T1_PCT')}|"
-        f"{fi(g(f'S{i}_T2'))}|{g(f'S{i}_T2_PCT')}|{';;'.join(reasons)}"
+    sector  = g(f'{pfx}{i}_SECTOR') or '대형주'
+    return (
+        f"{pfx}{i}={g(f'{pfx}{i}_NAME')}|{g(f'{pfx}{i}_CODE')}|{g(f'{pfx}{i}_MKT')}|{sector}|"
+        f"{fi(g(f'{pfx}{i}_CLOSE'))}|{sp(g(f'{pfx}{i}_R1W'))}|{sp(g(f'{pfx}{i}_R12W'))}|"
+        f"{g(f'{pfx}{i}_RSI')}|{g(f'{pfx}{i}_VOLR')}|"
+        f"{fi(g(f'{pfx}{i}_ENTRY'))}|{fi(g(f'{pfx}{i}_STOP'))}|{g(f'{pfx}{i}_STOP_PCT')}|"
+        f"{fi(g(f'{pfx}{i}_T1'))}|{g(f'{pfx}{i}_T1_PCT')}|"
+        f"{fi(g(f'{pfx}{i}_T2'))}|{g(f'{pfx}{i}_T2_PCT')}|{';;'.join(reasons)}"
     )
+
+# 안정 대장주 모델 TOP5
+for i in range(5):
+    print(parse_stock('S', i))
+
+# 단기 모멘텀 모델 TOP5
+for i in range(5):
+    print(parse_stock('M', i))
+
+# ETF 추천 모델 TOP5
+for i in range(5):
+    print(parse_stock('E', i))
