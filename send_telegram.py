@@ -73,9 +73,27 @@ def build_summary(d):
         "\U0001f4ca *주간 퀀트 리포트*",
         f"기준일: {date}  |  투자일: {nm}",
         "",
-        "━━━ 이번 주 시장 ━━━",
+        "━━━ 🇰🇷 한국 시장 ━━━",
         f"{ki} KOSPI  `{kr:+.2f}%`  상승 {g(d,'KOSPI_UP')} / 하락 {g(d,'KOSPI_DN')}",
         f"{qi} KOSDAQ `{qr:+.2f}%`  상승 {g(d,'KOSDAQ_UP')} / 하락 {g(d,'KOSDAQ_DN')}",
+    ]
+    sp_r = float(g(d, 'US_SP_RET') or 0)
+    nq_r = float(g(d, 'US_NQ_RET') or 0)
+    dj_r = float(g(d, 'US_DJ_RET') or 0)
+    if sp_r or nq_r or dj_r:
+        spi = "\U0001f4c8" if sp_r >= 0 else "\U0001f4c9"
+        nqi = "\U0001f4c8" if nq_r >= 0 else "\U0001f4c9"
+        dji_ico = "\U0001f4c8" if dj_r >= 0 else "\U0001f4c9"
+        sp_ad = f"  상승 {g(d,'US_SP_UP')} / 하락 {g(d,'US_SP_DN')}" if g(d,'US_SP_UP') else ''
+        dj_ad = f"  상승 {g(d,'US_DJ_UP')} / 하락 {g(d,'US_DJ_DN')}" if g(d,'US_DJ_UP') else ''
+        lines += [
+            "",
+            "━━━ 미국 시장 ━━━",
+            f"{spi} S\\&P 500  `{sp_r:+.2f}%`{sp_ad}",
+            f"{nqi} NASDAQ   `{nq_r:+.2f}%`",
+            f"{dji_ico} Dow Jones `{dj_r:+.2f}%`{dj_ad}",
+        ]
+    lines += [
         "",
         "━━━ 🟢 안정 대장주 TOP 5 ━━━",
         "_시총 상위 대장주 · 추세건전성+리스크조정 기준_",

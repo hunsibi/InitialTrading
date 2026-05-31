@@ -37,6 +37,9 @@ print(f"DAYS_OLD={days_old}")
 print(f"DATE={g('DATE')}")
 print(f"KS={g('KOSPI_RET')}%|{g('KOSPI_UP')}|{g('KOSPI_DN')}")
 print(f"KD={g('KOSDAQ_RET')}%|{g('KOSDAQ_UP')}|{g('KOSDAQ_DN')}")
+print(f"US_SP={g('US_SP_RET')}%|{g('US_SP_UP')}|{g('US_SP_DN')}")
+print(f"US_NQ={g('US_NQ_RET')}%")
+print(f"US_DJ={g('US_DJ_RET')}%|{g('US_DJ_UP')}|{g('US_DJ_DN')}")
 
 def parse_stock(pfx, i):
     reasons_raw = g(f'{pfx}{i}_REASONS')

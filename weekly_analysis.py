@@ -675,6 +675,92 @@ def market_summary(prices: pd.DataFrame, master: pd.DataFrame) -> dict:
     return summary
 
 
+# Dow Jones 30 components (2025 기준)
+DOW30_TICKERS = [
+    'AAPL', 'AMGN', 'AXP', 'BA',  'CAT', 'CRM', 'CSCO', 'CVX', 'DIS', 'DOW',
+    'GS',   'HD',   'HON', 'IBM', 'JNJ', 'JPM', 'KO',   'MCD', 'MMM', 'MRK',
+    'MSFT', 'NKE',  'NVDA','PG',  'SHW', 'TRV', 'UNH',  'V',   'VZ',  'WMT',
+]
+
+
+def us_market_summary() -> dict:
+    """S&P 500 · NASDAQ Composite · Dow Jones 30 주간 시장 요약 (yfinance)"""
+    import re
+    try:
+        import yfinance as yf
+    except ImportError:
+        print("  [경고] yfinance 미설치 — US 시장 데이터 건너뜀 (pip install yfinance)")
+        return {}
+
+    end_dt   = datetime.now()
+    start_dt = end_dt - timedelta(days=14)
+
+    def _bulk_stats(tickers):
+        try:
+            raw = yf.download(tickers, start=start_dt, end=end_dt,
+                              interval='1d', progress=False, auto_adjust=True)
+            if raw.empty:
+                return None
+            if isinstance(raw.columns, pd.MultiIndex):
+                closes = raw['Close']
+            else:
+                closes = pd.DataFrame({'_': raw['Close']})
+            rets = ((closes.iloc[-1] - closes.iloc[0]) / closes.iloc[0] * 100).dropna()
+            return {
+                'ret': round(float(rets.mean()), 2),
+                'up':  int((rets > 0).sum()),
+                'dn':  int((rets < 0).sum()),
+            }
+        except Exception as e:
+            print(f"  [경고] yfinance 오류: {e}")
+            return None
+
+    def _index_ret(symbol):
+        try:
+            raw = yf.download(symbol, start=start_dt, end=end_dt,
+                              interval='1d', progress=False, auto_adjust=True)
+            if raw.empty or len(raw) < 2:
+                return None
+            c = raw['Close'].dropna() if not isinstance(raw.columns, pd.MultiIndex) \
+                else raw['Close'].iloc[:, 0].dropna()
+            return round(float((c.iloc[-1] - c.iloc[0]) / c.iloc[0] * 100), 2)
+        except:
+            return None
+
+    result = {}
+
+    # S&P 500 컴포넌트 → 상승/하락 집계
+    print("  [US 시장] S&P 500 수집 중...")
+    sp_tickers = []
+    try:
+        sp_df  = fdr.StockListing('S&P500')
+        col    = 'Symbol' if 'Symbol' in sp_df.columns else sp_df.columns[0]
+        sp_tickers = [t for t in sp_df[col].dropna().tolist()
+                      if re.match(r'^[A-Z]{1,5}$', str(t))][:500]
+    except Exception:
+        pass
+    sp_stats = _bulk_stats(sp_tickers) if sp_tickers else None
+    if sp_stats is None:
+        ret = _index_ret('SPY') or 0
+        sp_stats = {'ret': ret, 'up': 0, 'dn': 0}
+    result['SP500'] = sp_stats
+
+    # NASDAQ Composite (지수만, 전 종목 집계 생략)
+    print("  [US 시장] NASDAQ 수집 중...")
+    nq_ret = _index_ret('^IXIC') or _index_ret('QQQ') or 0
+    result['NASDAQ'] = {'ret': nq_ret, 'up': None, 'dn': None}
+
+    # Dow Jones 30
+    print("  [US 시장] Dow Jones 30 수집 중...")
+    dj_stats = _bulk_stats(DOW30_TICKERS)
+    if dj_stats is None:
+        dj_ret = _index_ret('^DJI') or _index_ret('DIA') or 0
+        dj_stats = {'ret': dj_ret, 'up': 0, 'dn': 0}
+    result['DOW30'] = dj_stats
+
+    return result
+
+
 # -------------------------------------------------------------------------
 # 7. 포트폴리오 주간 성과
 # -------------------------------------------------------------------------

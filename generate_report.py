@@ -30,7 +30,13 @@ except Exception as e:
     top5_etf = pd.DataFrame()
     etf_ok   = False
 
-mkt  = wa.market_summary(prices, master)
+mkt     = wa.market_summary(prices, master)
+print("\n=== [미국 시장 요약] ===")
+try:
+    us_mkt = wa.us_market_summary()
+except Exception as e:
+    print(f"  [경고] US 시장 수집 실패: {e}")
+    us_mkt = {}
 top5_stable = scored_stable.head(5)
 top5_mom    = scored_mom.head(5)
 date = prices['Date'].max().strftime('%Y-%m-%d')
@@ -258,6 +264,17 @@ with open(out_path, 'w', encoding='utf-8') as f:
     f.write(f'KOSDAQ_RET={mkt["KOSDAQ"]["mean_ret"]}\n')
     f.write(f'KOSDAQ_UP={mkt["KOSDAQ"]["up"]}\n')
     f.write(f'KOSDAQ_DN={mkt["KOSDAQ"]["down"]}\n')
+    # 미국 시장
+    sp  = us_mkt.get('SP500',  {})
+    nq  = us_mkt.get('NASDAQ', {})
+    dj  = us_mkt.get('DOW30',  {})
+    f.write(f'US_SP_RET={sp.get("ret", "")}\n')
+    f.write(f'US_SP_UP={sp.get("up", "")}\n')
+    f.write(f'US_SP_DN={sp.get("dn", "")}\n')
+    f.write(f'US_NQ_RET={nq.get("ret", "")}\n')
+    f.write(f'US_DJ_RET={dj.get("ret", "")}\n')
+    f.write(f'US_DJ_UP={dj.get("up", "")}\n')
+    f.write(f'US_DJ_DN={dj.get("dn", "")}\n')
 
     # 안정 대장주 모델 (S prefix)
     for i, lv in enumerate(levels_stable):
