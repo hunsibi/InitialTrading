@@ -125,6 +125,55 @@ def build_summary(d):
     return '\n'.join(lines)
 
 
+def build_institutional_section(d):
+    """글로벌 기관 포트폴리오 동향 섹션 (텔레그램 메시지)."""
+    inst_count = int(g(d, 'INST_COUNT') or 0)
+    if inst_count == 0:
+        return ''
+    lines = [
+        "🌍 *글로벌 기관 포트폴리오 동향*",
+        "_SEC 13F 공시 기반 · 분기별 업데이트_",
+    ]
+    for j in range(min(inst_count, 11)):
+        name   = g(d, f'INST{j}_NAME')
+        if not name:
+            break
+        period  = g(d, f'INST{j}_PERIOD')
+        sectors = g(d, f'INST{j}_TOP3_SECTORS').replace('|', '  ')
+        holds   = g(d, f'INST{j}_TOP3_HOLD').replace('|', ' / ')
+        lines += [
+            "",
+            f"*{name}* _{period} 기준_",
+            f"   섹터: `{sectors}`",
+            f"   TOP3: `{holds}`",
+        ]
+    lines += ["", "⚠️ _퀀트 모델 자동 산출 — 투자 손익 책임은 본인에게 있습니다_"]
+    return '\n'.join(lines)
+
+
+def build_inst_korean_section(d):
+    """기관 연동 한국 종목 TOP5 섹션."""
+    if not g(d, 'I0_NAME'):
+        return ''
+    lines = [
+        "📍 *기관 연동 한국 종목 TOP 5*",
+        "_글로벌 기관 섹터 집중도 연동 퀀트 선정_",
+    ]
+    for i in range(5):
+        if not g(d, f'I{i}_NAME'):
+            break
+        lines += [
+            "",
+            f"{RANK_ICO[i]} *{g(d,f'I{i}_NAME')}* `{g(d,f'I{i}_CODE')}` {g(d,f'I{i}_MKT')} · {g(d,f'I{i}_SECTOR')}",
+            f"   현재가 `{fi(g(d,f'I{i}_CLOSE'))}원`  주간 `{sp(g(d,f'I{i}_R1W'))}`  12주 `{sp(g(d,f'I{i}_R12W'))}`",
+            f"   RSI `{g(d,f'I{i}_RSI')}`  거래량 `{g(d,f'I{i}_VOLR')}배`",
+            f"   매수 `{fi(g(d,f'I{i}_ENTRY'))}`  손절 `{fi(g(d,f'I{i}_STOP'))}`({g(d,f'I{i}_STOP_PCT')}%)",
+            f"   목표1 `{fi(g(d,f'I{i}_T1'))}`(+{g(d,f'I{i}_T1_PCT')}%)  목표2 `{fi(g(d,f'I{i}_T2'))}`(+{g(d,f'I{i}_T2_PCT')}%)",
+        ]
+    lines += ["", "⚠️ _퀀트 모델 자동 산출 — 투자 손익 책임은 본인에게 있습니다_"]
+    return '\n'.join(lines)
+
+
 def build_detail(d, pfx, i):
     clean = lambda s: re.sub(r'<[^>]+>', '', s)
     reasons_raw = g(d, f'{pfx}{i}_REASONS')
@@ -222,6 +271,18 @@ def run():
                 ok = send_msg(build_detail(d, pfx, i))
                 name = g(d, f'{pfx}{i}_NAME')
                 print(f"     [{label}] {i+1}. {name}: {'OK' if ok else 'FAIL'}")
+
+    inst_msg = build_institutional_section(d)
+    if inst_msg:
+        print("  [3] 글로벌 기관 포트폴리오 동향 전송...")
+        ok3 = send_msg(inst_msg)
+        print(f"  -> {'완료' if ok3 else '실패'}")
+
+    inst_kr_msg = build_inst_korean_section(d)
+    if inst_kr_msg:
+        print("  [4] 기관연동 한국 종목 TOP5 전송...")
+        ok4 = send_msg(inst_kr_msg)
+        print(f"  -> {'완료' if ok4 else '실패'}")
 
     print("\n  전송 완료! 텔레그램을 확인하세요.")
     print("="*50)

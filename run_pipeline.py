@@ -61,6 +61,18 @@ def main():
 
     # 2. 파이프라인 실행
     run_step("[1/4] 데이터 업데이트 중...", "update_data.py")
+
+    # 기관 포트폴리오 수집 (실패해도 파이프라인 계속)
+    print(f"\n{'='*50}")
+    print("  [1-b/4] 글로벌 기관 포트폴리오 수집 중...")
+    print('='*50)
+    r_inst = subprocess.run(
+        [sys.executable, os.path.join(BASE_DIR, 'fetch_institutional.py')],
+        capture_output=False, text=True
+    )
+    if r_inst.returncode != 0:
+        print("  [경고] fetch_institutional.py 실패 — 캐시 데이터로 계속 진행")
+
     run_step("[2/4] 퀀트 분석 실행 중...", "weekly_analysis.py")
     run_step("[3/4-a] 리포트 생성 중...", "generate_report.py")
     run_step("[3/4-b] HTML 빌드 중...", "build_html.py")

@@ -347,3 +347,104 @@ with open(out_path, 'w', encoding='utf-8') as f:
         f.write(f'E{i}_CAUTION={caution}\n')
 
 print(f'DATA_FILE={out_path}')
+
+# -- 기관투자자 연동 모델 (I prefix) ---------------------------------------
+print("\n=== [글로벌 기관투자자 연동 모델] ===")
+try:
+    top5_inst = wa.screen_institutional_aligned(ind, master)
+    inst_ok   = not top5_inst.empty
+except Exception as e:
+    print(f"  [경고] 기관연동 모델 실패: {e}")
+    top5_inst = pd.DataFrame()
+    inst_ok   = False
+
+inst_docs = wa.load_institutional_docs()
+levels_inst = collect_levels(top5_inst) if inst_ok and not top5_inst.empty else []
+inst_weights = wa.load_institutional_sectors() if inst_ok else {}
+
+
+def gen_reasons_institutional(lv: dict, weights: dict) -> list:
+    reasons = []
+    # 기관 섹터 이유
+    for us_sec, kr_list in wa.US_TO_KR_SECTOR.items():
+        if any(k in lv['Sector'] for k in kr_list):
+            w = weights.get(us_sec, 0)
+            if w >= 0.05:
+                reasons.append(
+                    f'글로벌 기관 <b>{us_sec}</b> 섹터 평균 <b>{w*100:.0f}%</b> 집중 — {lv["Sector"]} 수혜 기대'
+                )
+            break
+    # 기존 안정 이유 재사용
+    if lv['MA20'] > 0 and lv['MA60'] > 0:
+        if lv['Close'] > lv['MA20'] > lv['MA60']:
+            reasons.append('MA20·MA60 <b>정배열</b> — 중장기 상승추세 확립')
+        elif lv['Close'] > lv['MA60']:
+            reasons.append(f'현재가가 MA60({lv["MA60"]:,}원) 상회 — 중기 추세 유효')
+    if lv['MA20'] > 0:
+        gap = (lv['Close'] - lv['MA20']) / lv['MA20'] * 100
+        if 0 <= gap <= 7:
+            reasons.append(f'MA20 대비 <b>+{gap:.1f}%</b> — 과열 없는 이상적 진입 구간')
+    if 45 <= lv['RSI'] <= 62:
+        reasons.append(f'RSI <b>{lv["RSI"]}</b> — 과열·과매도 없는 최적 매수 구간')
+    elif 62 < lv['RSI'] <= 68:
+        reasons.append(f'RSI <b>{lv["RSI"]}</b> — 상승 강도 높음 (분할 매수 권장)')
+    r4 = lv['R4W']
+    if r4 > 0:
+        reasons.append(f'4주 수익률 <b>+{r4}%</b> — 안정적 상승세')
+    if lv['MACD'] > 0:
+        reasons.append(f'MACD 히스토그램 <b>+{lv["MACD"]}</b> — 상승 모멘텀 지속')
+    if len(reasons) < 3:
+        reasons.append(f'퀀트+기관연동 종합점수 <b>{lv["Score"]}</b> — 스마트머니 섹터 + 기술적 우수')
+    return reasons[:5]
+
+
+with open(out_path, 'a', encoding='utf-8') as f:
+    # 글로벌 기관 동향 요약 (INST prefix)
+    f.write(f'INST_COUNT={len(inst_docs)}\n')
+    for j, idoc in enumerate(inst_docs[:11]):
+        sw = idoc.get('sector_weights', {})
+        top3_sectors = '|'.join(
+            f"{k}:{v*100:.0f}%"
+            for k, v in sorted(sw.items(), key=lambda x: -x[1])[:3]
+        )
+        top3_hold = '|'.join(
+            h['name'][:25] for h in idoc.get('top_holdings', [])[:3]
+        )
+        f.write(f'INST{j}_NAME={idoc.get("name","")}\n')
+        f.write(f'INST{j}_DATE={idoc.get("filing_date","")}\n')
+        f.write(f'INST{j}_PERIOD={idoc.get("period_of_report","")}\n')
+        f.write(f'INST{j}_TOP3_SECTORS={top3_sectors}\n')
+        f.write(f'INST{j}_TOP3_HOLD={top3_hold}\n')
+        f.write(f'INST{j}_TOTAL={idoc.get("total_holdings_count",0)}\n')
+
+    # 기관연동 한국 종목 (I prefix)
+    if inst_ok:
+        for i, lv in enumerate(levels_inst):
+            reasons = gen_reasons_institutional(lv, inst_weights)
+            caution = gen_caution_stable(lv)
+            f.write(f'I{i}_NAME={lv["Name"]}\n')
+            f.write(f'I{i}_CODE={lv["Code"]}\n')
+            f.write(f'I{i}_MKT={lv["Market"]}\n')
+            f.write(f'I{i}_SECTOR={lv["Sector"]}\n')
+            f.write(f'I{i}_SCORE={lv["Score"]}\n')
+            f.write(f'I{i}_CLOSE={lv["Close"]}\n')
+            f.write(f'I{i}_RSI={lv["RSI"]}\n')
+            f.write(f'I{i}_MACD={lv["MACD"]}\n')
+            f.write(f'I{i}_VOLR={lv["VolR"]}\n')
+            f.write(f'I{i}_R1W={lv["R1W"]}\n')
+            f.write(f'I{i}_R4W={lv["R4W"]}\n')
+            f.write(f'I{i}_R12W={lv["R12W"]}\n')
+            f.write(f'I{i}_MA20={lv["MA20"]}\n')
+            f.write(f'I{i}_MA60={lv["MA60"]}\n')
+            f.write(f'I{i}_ATR={int(lv["ATR"])}\n')
+            f.write(f'I{i}_ENTRY={lv["Entry"]}\n')
+            f.write(f'I{i}_STOP={lv["StopLoss"]}\n')
+            f.write(f'I{i}_STOP_PCT={lv["Stop_Pct"]}\n')
+            f.write(f'I{i}_T1={lv["Target1"]}\n')
+            f.write(f'I{i}_T1_PCT={lv["T1_Pct"]}\n')
+            f.write(f'I{i}_T2={lv["Target2"]}\n')
+            f.write(f'I{i}_T2_PCT={lv["T2_Pct"]}\n')
+            f.write(f'I{i}_REASONS={"|".join(reasons)}\n')
+            f.write(f'I{i}_CAUTION={caution}\n')
+
+print(f'\n  [기관연동] 완료 — {len(levels_inst)}개 종목, {len(inst_docs)}개 기관 동향')

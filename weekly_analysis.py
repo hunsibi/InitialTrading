@@ -513,7 +513,120 @@ def screen_and_score_momentum(ind: pd.DataFrame, master: pd.DataFrame) -> pd.Dat
 
 
 # -------------------------------------------------------------------------
-# 6. 매매 레벨 계산
+# 6. 글로벌 기관투자자 섹터 연동 모델
+# -------------------------------------------------------------------------
+
+# US 섹터 → 한국 업종 매핑
+US_TO_KR_SECTOR = {
+    'Technology':    ['반도체', 'IT서비스', 'AI', '디스플레이', 'IT/전자', '반도체/장비'],
+    'Healthcare':    ['제약', '바이오', '의료기기', '바이오/제약'],
+    'Financials':    ['금융', '보험', '증권', '금융/보험'],
+    'Energy':        ['정유/화학', '신재생에너지', '에너지/전력', '화학'],
+    'Consumer':      ['유통/소비재', '음식료', '화장품', '게임/엔터'],
+    'Industrials':   ['산업재', '방산/항공', '조선', '방산/테마', '조선/기계'],
+    'Real Estate':   ['리츠', '건설/부동산'],
+    'Materials':     ['철강/소재', '화학', '배터리/소재', '철강/금속'],
+    'Communication': ['통신/플랫폼', '미디어'],
+    'Utilities':     ['유틸리티', '에너지/전력'],
+}
+
+
+def load_institutional_sectors() -> dict:
+    """MongoDB institutional_holdings에서 기관별 섹터 가중치 평균 집계."""
+    try:
+        db   = get_db()
+        docs = list(db['institutional_holdings'].find({}, {'sector_weights': 1, '_id': 0}))
+        if not docs:
+            print("  [기관] institutional_holdings 없음 — fetch_institutional.py 필요")
+            return {}
+        all_sectors = {}
+        for doc in docs:
+            for sec, w in doc.get('sector_weights', {}).items():
+                all_sectors.setdefault(sec, []).append(w)
+        avg = {k: round(sum(v) / len(v), 4) for k, v in all_sectors.items()}
+        print(f"  [기관] 섹터 집계: {len(docs)}개 기관, 상위 → "
+              + ', '.join(f"{k}:{v:.0%}" for k, v in
+                          sorted(avg.items(), key=lambda x: -x[1])[:4]))
+        return avg
+    except Exception as e:
+        print(f"  [기관] 섹터 로드 오류: {e}")
+        return {}
+
+
+def load_institutional_docs() -> list:
+    """포트폴리오 동향 표시용 전체 문서 로드."""
+    try:
+        db   = get_db()
+        docs = list(db['institutional_holdings'].find(
+            {},
+            {'cik': 0, 'accession_no': 0, '_id': 0}
+        ))
+        return docs
+    except Exception:
+        return []
+
+
+def calc_sector_boost(kr_sector: str, inst_weights: dict) -> float:
+    """한국 업종 → US 섹터 매핑 → 기관 가중치 기반 부스트 (최대 0.15)."""
+    for us_sec, kr_list in US_TO_KR_SECTOR.items():
+        if any(k in kr_sector for k in kr_list):
+            return min(inst_weights.get(us_sec, 0.0) * 0.35, 0.15)
+    return 0.0
+
+
+def screen_institutional_aligned(ind: pd.DataFrame, master: pd.DataFrame) -> pd.DataFrame:
+    """
+    기존 screen_and_score() 기반으로 기관 섹터 집중도 부스트를 추가한 TOP5.
+    institutional_holdings 없으면 빈 DataFrame 반환.
+    """
+    inst_weights = load_institutional_sectors()
+    if not inst_weights:
+        return pd.DataFrame()
+
+    df = screen_and_score(ind, master)
+    if df.empty:
+        return df
+
+    # 업종 컬럼이 없으면 추론
+    if 'Sector' not in df.columns:
+        df['Sector'] = df['Name'].apply(infer_sector)
+
+    df['Inst_Boost']  = df['Sector'].apply(lambda s: calc_sector_boost(s, inst_weights))
+    df['Score_Inst']  = (df['Score_Total'] + df['Inst_Boost']).clip(upper=1.0)
+    df = df.sort_values('Score_Inst', ascending=False).reset_index(drop=True)
+
+    # 글로벌 기관 집중 TOP3 US 섹터 → 대응 한국 업종 우선 선발 (최대 3개)
+    top_us = [k for k, v in sorted(inst_weights.items(), key=lambda x: -x[1])[:3]]
+    top_kr = set()
+    for us in top_us:
+        top_kr.update(US_TO_KR_SECTOR.get(us, []))
+
+    selected, used_sectors, selected_codes = [], set(), set()
+    for _, row in df.iterrows():
+        sec = row.get('Sector', '')
+        if any(k in sec for k in top_kr) and sec not in used_sectors:
+            selected.append(row)
+            used_sectors.add(sec)
+            selected_codes.add(row['Code'])
+        if len(selected) >= 3:
+            break
+
+    for _, row in df.iterrows():
+        if row['Code'] not in selected_codes:
+            selected.append(row)
+            selected_codes.add(row['Code'])
+        if len(selected) >= 5:
+            break
+
+    result = pd.DataFrame(selected).reset_index(drop=True)
+    # Score_Total을 Score_Inst로 덮어쓰기 (collect_levels가 Score_Total 읽음)
+    result['Score_Total'] = result['Score_Inst']
+    print(f"  [기관연동] TOP{len(result)} 선정 완료")
+    return result
+
+
+# -------------------------------------------------------------------------
+# 7. 매매 레벨 계산
 # -------------------------------------------------------------------------
 
 def calc_trade_levels(row) -> dict:

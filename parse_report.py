@@ -62,3 +62,23 @@ for i in range(5):
 # ETF 추천 모델 TOP5
 for i in range(5):
     print(parse_stock('E', i))
+
+# 글로벌 기관 포트폴리오 동향
+inst_count = int(g('INST_COUNT') or 0)
+if inst_count > 0:
+    print(f"INST_COUNT={inst_count}")
+    for j in range(min(inst_count, 11)):
+        name    = g(f'INST{j}_NAME')
+        if not name:
+            break
+        date_   = g(f'INST{j}_DATE')
+        period  = g(f'INST{j}_PERIOD')
+        sectors = g(f'INST{j}_TOP3_SECTORS')
+        holds   = g(f'INST{j}_TOP3_HOLD')
+        total   = g(f'INST{j}_TOTAL')
+        print(f"INST{j}={name}|{date_}|{period}|{sectors}|{holds}|{total}")
+
+# 기관연동 한국 종목 TOP5
+for i in range(5):
+    if g(f'I{i}_NAME'):
+        print(parse_stock('I', i))

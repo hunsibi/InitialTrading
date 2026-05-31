@@ -1,5 +1,6 @@
 """
-build_html.py  -  weekly_full_DATE.html -> 최종 리포트 HTML (안정 TOP5 + 모멘텀 TOP5)
+build_html.py  -  weekly_full_DATE.html -> 최종 리포트 HTML
+레이아웃: 시장요약 → 전체요약표 → 기관포트폴리오 → 모델별 상세카드
 """
 import os, re
 from datetime import datetime, timedelta
@@ -52,24 +53,24 @@ except Exception:
 
 today_str = datetime.now().strftime('%Y-%m-%d')
 
-# 안정 모델 색상 (초록 계열)
+# 모델 색상 팔레트
 STABLE_COLORS = ['#16a085','#1abc9c','#27ae60','#2ecc71','#00b4d8']
 STABLE_LABELS = ['S1','S2','S3','S4','S5']
-STABLE_STARS  = {0:'⭐⭐⭐⭐⭐', 1:'⭐⭐⭐⭐⭐', 2:'⭐⭐⭐⭐⭐',
-                 3:'⭐⭐⭐⭐', 4:'⭐⭐⭐⭐'}
+STABLE_STARS  = {0:'⭐⭐⭐⭐⭐', 1:'⭐⭐⭐⭐⭐', 2:'⭐⭐⭐⭐⭐', 3:'⭐⭐⭐⭐', 4:'⭐⭐⭐⭐'}
 
-# 모멘텀 모델 색상 (주황 계열)
 MOM_COLORS = ['#f6a623','#9aa5ae','#c8954a','#5b6bd5','#e85d9a']
 MOM_LABELS = ['M1','M2','M3','M4','M5']
 MOM_STARS  = {0:'⭐⭐⭐⭐⭐', 1:'⭐⭐⭐⭐⭐', 2:'⭐⭐⭐⭐⭐',
               3:'⭐⭐⭐<br><small style="color:#e65100">변동성↑</small>',
               4:'⭐⭐⭐<br><small style="color:#e65100">변동성↑</small>'}
 
-# ETF 모델 색상 (파란 계열)
 ETF_COLORS = ['#2980b9','#3498db','#1a6fa8','#5dade2','#0077be']
 ETF_LABELS = ['E1','E2','E3','E4','E5']
-ETF_STARS  = {0:'⭐⭐⭐⭐⭐', 1:'⭐⭐⭐⭐⭐', 2:'⭐⭐⭐⭐⭐',
-              3:'⭐⭐⭐⭐', 4:'⭐⭐⭐⭐'}
+ETF_STARS  = {0:'⭐⭐⭐⭐⭐', 1:'⭐⭐⭐⭐⭐', 2:'⭐⭐⭐⭐⭐', 3:'⭐⭐⭐⭐', 4:'⭐⭐⭐⭐'}
+
+INST_COLORS = ['#8e44ad','#9b59b6','#7d3c98','#a569bd','#bb8fce']
+INST_LABELS = ['I1','I2','I3','I4','I5']
+INST_STARS  = {0:'⭐⭐⭐⭐⭐', 1:'⭐⭐⭐⭐⭐', 2:'⭐⭐⭐⭐⭐', 3:'⭐⭐⭐⭐', 4:'⭐⭐⭐⭐'}
 
 
 def stock_card(pfx, i, colors, labels):
@@ -77,7 +78,6 @@ def stock_card(pfx, i, colors, labels):
     name    = g(f'{pfx}{i}_NAME')
     mkt     = g(f'{pfx}{i}_MKT')
     sec     = g(f'{pfx}{i}_SECTOR')
-    score   = g(f'{pfx}{i}_SCORE')
     close   = g(f'{pfx}{i}_CLOSE')
     rsi_val = g(f'{pfx}{i}_RSI')
     macd    = g(f'{pfx}{i}_MACD')
@@ -207,6 +207,69 @@ def summary_row(pfx, i, colors, stars_map):
     </tr>'''
 
 
+def inst_portfolio_table():
+    """글로벌 기관 포트폴리오 동향 테이블 생성"""
+    count = int(g('INST_COUNT') or 0)
+    if count == 0:
+        return '<p style="color:#aaa;text-align:center;padding:24px">기관 포트폴리오 데이터 없음</p>'
+
+    sector_colors = {
+        'Technology': '#1565c0', 'Healthcare': '#2e7d32', 'Financials': '#e65100',
+        'Energy': '#6a1b9a', 'Consumer': '#c62828', 'Industrials': '#37474f',
+        'Real Estate': '#00695c', 'Materials': '#4e342e', 'Communication': '#0277bd',
+        'Utilities': '#558b2f', 'Other': '#78909c',
+    }
+
+    def sector_badge(s):
+        parts = s.split(':')
+        label = parts[0].strip() if parts else s
+        pct   = parts[1].strip() if len(parts) > 1 else ''
+        col   = sector_colors.get(label, '#78909c')
+        return f'<span style="background:{col}18;color:{col};border:1px solid {col}44;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">{label}<br><b>{pct}</b></span>'
+
+    rows = ''
+    for j in range(min(count, 11)):
+        name    = g(f'INST{j}_NAME')
+        if not name: break
+        date_   = g(f'INST{j}_DATE')
+        period  = g(f'INST{j}_PERIOD')
+        sectors = g(f'INST{j}_TOP3_SECTORS').split('|')
+        holds   = g(f'INST{j}_TOP3_HOLD').split('|')
+        total   = g(f'INST{j}_TOTAL')
+
+        s_cells = ''.join(f'<td style="text-align:center">{sector_badge(s)}</td>' for s in sectors[:3])
+        h_cells = ''.join(
+            f'<td style="font-size:11px;font-weight:600;max-width:100px">{h.strip()}</td>'
+            for h in holds[:3]
+        )
+
+        try:    total_disp = f'{int(total):,}'
+        except: total_disp = total
+
+        rows += f'''<tr>
+          <td class="sn" style="font-size:13px;font-weight:800">{name}</td>
+          <td style="font-size:11px;color:#777">{date_}</td>
+          <td style="font-size:11px;color:#555;font-weight:600">{period}</td>
+          {s_cells}
+          {h_cells}
+          <td style="font-size:11px;color:#999;text-align:right">{total_disp}종목</td>
+        </tr>'''
+
+    return f'''<div style="overflow-x:auto">
+<table class="sum-table">
+  <thead><tr>
+    <th style="text-align:left;padding-left:14px">기관명</th>
+    <th>공시일</th><th>기준분기</th>
+    <th>섹터①</th><th>섹터②</th><th>섹터③</th>
+    <th>TOP보유①</th><th>TOP보유②</th><th>TOP보유③</th>
+    <th>보유수</th>
+  </tr></thead>
+  <tbody>{rows}</tbody>
+</table>
+</div>'''
+
+
+# HTML 조각 생성
 stable_cards_html = ''.join(stock_card('S', i, STABLE_COLORS, STABLE_LABELS) for i in range(5))
 mom_cards_html    = ''.join(stock_card('M', i, MOM_COLORS, MOM_LABELS) for i in range(5))
 stable_rows_html  = ''.join(summary_row('S', i, STABLE_COLORS, STABLE_STARS) for i in range(5))
@@ -218,7 +281,17 @@ etf_cards_html = (
     if etf_data_ok else
     '<p style="color:#aaa;text-align:center;padding:24px">ETF 데이터 없음 — 인터넷 연결 또는 FDR 상태 확인</p>'
 )
-etf_rows_html  = ''.join(summary_row('E', i, ETF_COLORS, ETF_STARS) for i in range(5)) if etf_data_ok else ''
+etf_rows_html = ''.join(summary_row('E', i, ETF_COLORS, ETF_STARS) for i in range(5)) if etf_data_ok else ''
+
+inst_data_ok    = bool(g('I0_NAME'))
+inst_cards_html = (
+    ''.join(stock_card('I', i, INST_COLORS, INST_LABELS) for i in range(5))
+    if inst_data_ok else
+    '<p style="color:#aaa;text-align:center;padding:24px">기관연동 데이터 없음</p>'
+)
+inst_rows_html = ''.join(summary_row('I', i, INST_COLORS, INST_STARS) for i in range(5)) if inst_data_ok else ''
+
+inst_port_table = inst_portfolio_table()
 
 ks_ret = float(g('KOSPI_RET')  or 0)
 ks_up  = g('KOSPI_UP');  ks_dn = g('KOSPI_DN')
@@ -246,24 +319,32 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
 .hdr-badges{{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}}
 .hbadge{{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);
          padding:4px 12px;border-radius:16px;font-size:11px;color:#cde}}
-.wrap{{max-width:1100px;margin:0 auto;padding:0 16px}}
+.wrap{{max-width:1200px;margin:0 auto;padding:0 16px}}
 .sec{{margin:22px 0}}
 .sec-title{{font-size:15px;font-weight:800;color:#1a1a2e;
             border-left:4px solid #0f3460;padding-left:10px;margin-bottom:14px}}
 .sec-title-green{{border-left-color:#16a085}}
 .sec-title-orange{{border-left-color:#f6a623}}
 .sec-title-blue{{border-left-color:#2980b9}}
+.sec-title-purple{{border-left-color:#8e44ad}}
+.sec-title-global{{border-left-color:#d4ac0d}}
 .model-badge{{display:inline-block;padding:3px 10px;border-radius:12px;
               font-size:11px;font-weight:700;margin-left:10px;vertical-align:middle}}
 .badge-stable{{background:#e8f8f3;color:#16a085}}
 .badge-mom{{background:#fff3e0;color:#e65100}}
 .badge-etf{{background:#e3f2fd;color:#1565c0}}
+.badge-inst{{background:#f3e5f5;color:#7b1fa2}}
+.badge-global{{background:#fef9e7;color:#b7950b}}
 .mkt-row{{display:flex;gap:14px}}
 .mkt-card{{flex:1;background:#fff;border-radius:12px;padding:20px 24px;
            box-shadow:0 2px 10px rgba(0,0,0,.07)}}
 .mkt-label{{font-size:11px;color:#999;margin-bottom:6px;font-weight:600}}
 .mkt-val{{font-size:30px;font-weight:900}}
 .mkt-sub{{font-size:12px;color:#777;margin-top:6px}}
+.summary-block{{background:#fff;border-radius:14px;padding:20px 22px;
+                box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:20px}}
+.summary-block-title{{font-size:13px;font-weight:800;margin-bottom:12px;
+                       padding-bottom:8px;border-bottom:1px solid #f0f0f0}}
 .card{{background:#fff;border-radius:14px;
        box-shadow:0 2px 10px rgba(0,0,0,.07);overflow:hidden;margin-bottom:18px}}
 .card-top{{display:flex;align-items:center;gap:14px;padding:18px 22px 16px;
@@ -318,7 +399,7 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
 .sum-table th{{background:#1a1a2e;color:#fff;padding:11px 10px;
                font-size:11px;text-align:center;white-space:nowrap}}
 .sum-table td{{padding:11px 10px;border-bottom:1px solid #f2f2f2;
-               text-align:center;font-size:13px}}
+               text-align:center;font-size:13px;vertical-align:middle}}
 .sum-table tr:last-child td{{border-bottom:none}}
 .sum-table tr:hover td{{background:#f7f9ff}}
 .sn{{text-align:left !important;padding-left:14px !important;font-weight:700}}
@@ -329,25 +410,29 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
          color:#666;line-height:1.9;margin-top:0}}
 .model-intro{{background:#fff;border-radius:12px;padding:14px 18px;
               margin-bottom:16px;box-shadow:0 1px 6px rgba(0,0,0,.06);font-size:13px}}
+.divider{{height:2px;background:linear-gradient(90deg,#0f3460,transparent);
+          margin:32px 0;border-radius:2px;opacity:.3}}
 .footer{{text-align:center;padding:24px;color:#bbb;font-size:11px}}
 </style>
 </head>
 <body>
 
 <div class="hdr">
-  <h1>📊 주간 퀀트 리포트 — 안정 대장주 TOP5 + 모멘텀 TOP5</h1>
+  <h1>📊 주간 퀀트 리포트 — {report_date}</h1>
   <p>기준일: {report_date} (금요일 마감) &nbsp;|&nbsp; 차주 월요일({next_mon}) 투자 전략</p>
   <div class="hdr-badges">
-    <span class="hbadge">🟢 안정 대장주 모델 TOP5</span>
-    <span class="hbadge">🔴 단기 모멘텀 모델 TOP5</span>
+    <span class="hbadge">🟢 안정 대장주 TOP5</span>
+    <span class="hbadge">🔴 단기 모멘텀 TOP5</span>
     <span class="hbadge">🔵 ETF 추천 TOP5</span>
+    <span class="hbadge">🟣 기관연동 한국종목 TOP5</span>
+    <span class="hbadge">🌍 글로벌 기관 포트폴리오</span>
     <span class="hbadge">🤖 퀀트 모델 자동 산출</span>
   </div>
 </div>
 
 <div class="wrap">
 
-<!-- 시장 요약 -->
+<!-- ① 시장 요약 -->
 <div class="sec">
   <div class="sec-title">📈 이번 주 시장 요약</div>
   <div class="mkt-row">
@@ -364,9 +449,92 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
   </div>
 </div>
 
-<!-- 안정 대장주 모델 -->
+<!-- ② 전체 요약표 모음 -->
 <div class="sec">
-  <div class="sec-title sec-title-green">🟢 안정 대장주 TOP 5 <span class="model-badge badge-stable">시총 상위 · 추세건전성+리스크조정</span></div>
+  <div class="sec-title">📋 종목 추천 요약표</div>
+
+  <!-- 안정 대장주 요약 -->
+  <div class="summary-block">
+    <div class="summary-block-title" style="color:#16a085">🟢 안정 대장주 TOP 5 <span class="model-badge badge-stable">시총 상위 · 추세건전성+리스크조정</span></div>
+    <div style="overflow-x:auto">
+    <table class="sum-table">
+      <thead><tr>
+        <th>#</th>
+        <th style="text-align:left;padding-left:14px">종목명</th>
+        <th>업종</th><th>현재가</th><th>주간</th><th>12주</th>
+        <th>RSI</th><th>거래량</th><th>매수가</th><th>손절가</th><th>목표①</th><th>목표②</th><th>접근</th>
+      </tr></thead>
+      <tbody>{stable_rows_html}</tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- 단기 모멘텀 요약 -->
+  <div class="summary-block">
+    <div class="summary-block-title" style="color:#e65100">🔴 단기 모멘텀 TOP 5 <span class="model-badge badge-mom">전 종목 · 고변동성 주의</span></div>
+    <div style="overflow-x:auto">
+    <table class="sum-table">
+      <thead><tr>
+        <th>#</th>
+        <th style="text-align:left;padding-left:14px">종목명</th>
+        <th>업종</th><th>현재가</th><th>주간</th><th>12주</th>
+        <th>RSI</th><th>거래량</th><th>매수가</th><th>손절가</th><th>목표①</th><th>목표②</th><th>접근</th>
+      </tr></thead>
+      <tbody>{mom_rows_html}</tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- ETF 요약 -->
+  <div class="summary-block">
+    <div class="summary-block-title" style="color:#1565c0">🔵 ETF 추천 TOP 5 <span class="model-badge badge-etf">퀀트 선정 · 레버리지·인버스 제외</span></div>
+    <div style="overflow-x:auto">
+    <table class="sum-table">
+      <thead><tr>
+        <th>#</th>
+        <th style="text-align:left;padding-left:14px">ETF명</th>
+        <th>테마</th><th>현재가</th><th>주간</th><th>12주</th>
+        <th>RSI</th><th>거래량</th><th>매수가</th><th>손절가</th><th>목표①</th><th>목표②</th><th>접근</th>
+      </tr></thead>
+      <tbody>{etf_rows_html if etf_rows_html else '<tr><td colspan="13" style="color:#aaa;padding:20px">ETF 데이터 없음</td></tr>'}</tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- 기관연동 한국 종목 요약 -->
+  <div class="summary-block">
+    <div class="summary-block-title" style="color:#7b1fa2">🟣 기관연동 한국 종목 TOP 5 <span class="model-badge badge-inst">글로벌 기관 섹터 신호 + 기술적 지표</span></div>
+    <div style="overflow-x:auto">
+    <table class="sum-table">
+      <thead><tr>
+        <th>#</th>
+        <th style="text-align:left;padding-left:14px">종목명</th>
+        <th>업종</th><th>현재가</th><th>주간</th><th>12주</th>
+        <th>RSI</th><th>거래량</th><th>매수가</th><th>손절가</th><th>목표①</th><th>목표②</th><th>접근</th>
+      </tr></thead>
+      <tbody>{inst_rows_html if inst_rows_html else '<tr><td colspan="13" style="color:#aaa;padding:20px">기관연동 데이터 없음</td></tr>'}</tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ③ 글로벌 기관 포트폴리오 동향 -->
+<div class="sec">
+  <div class="sec-title sec-title-global">🌍 글로벌 기관투자자 포트폴리오 동향 <span class="model-badge badge-global">SEC EDGAR 13F 공시 · 분기 기준</span></div>
+  <div class="model-intro">
+    📌 <b>데이터 출처</b>: 미국 SEC EDGAR 13F-HR 분기 공시 (AUM $100M 이상 기관 의무 보고)<br>
+    ✅ <b>활용 방법</b>: 글로벌 스마트머니의 섹터 집중도를 확인하고, 동일 방향성의 한국 종목(기관연동 모델)에 가중치 부여
+  </div>
+  {inst_port_table}
+</div>
+
+<div class="divider"></div>
+
+<!-- ④ 모델별 상세 카드 -->
+
+<!-- 안정 대장주 상세 -->
+<div class="sec">
+  <div class="sec-title sec-title-green">🟢 안정 대장주 TOP 5 — 상세 분석 <span class="model-badge badge-stable">시총 상위 · 추세건전성+리스크조정</span></div>
   <div class="model-intro">
     📌 <b>선정 기준</b>: 시총 상위 350위 이내(업종별 대장주) 중 ①MA 정배열+이격률(35%) ②변동성 대비 수익률(30%) ③RSI·MACD·거래량 안정성(25%) ④12주 모멘텀(10%) 종합 평가<br>
     ✅ <b>특징</b>: 손절폭 8~12%, 일일 변동성 ≤5%, 안정적 중장기 투자에 적합
@@ -374,25 +542,9 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
   {stable_cards_html}
 </div>
 
-<!-- 안정 요약 테이블 -->
+<!-- 단기 모멘텀 상세 -->
 <div class="sec">
-  <div class="sec-title sec-title-green">📋 안정 대장주 요약표</div>
-  <div style="overflow-x:auto">
-  <table class="sum-table">
-    <thead><tr>
-      <th>#</th>
-      <th style="text-align:left;padding-left:14px">종목명</th>
-      <th>업종</th><th>현재가</th><th>주간</th><th>12주</th>
-      <th>RSI</th><th>거래량</th><th>매수가</th><th>손절가</th><th>목표①</th><th>목표②</th><th>접근</th>
-    </tr></thead>
-    <tbody>{stable_rows_html}</tbody>
-  </table>
-  </div>
-</div>
-
-<!-- 모멘텀 모델 -->
-<div class="sec">
-  <div class="sec-title sec-title-orange">🔴 단기 모멘텀 TOP 5 <span class="model-badge badge-mom">전 종목 · 1주·4주·12주 모멘텀</span></div>
+  <div class="sec-title sec-title-orange">🔴 단기 모멘텀 TOP 5 — 상세 분석 <span class="model-badge badge-mom">전 종목 · 1주·4주·12주 모멘텀</span></div>
   <div class="model-intro">
     📌 <b>선정 기준</b>: 전 종목 대상 ①1주·4주·12주 수익률 모멘텀(35%) ②거래량(20%) ③추세(25%) ④RSI·MACD(20%) 종합 평가<br>
     ⚠️ <b>주의</b>: 단기 급등 종목 포함, 고변동성·높은 손절폭 가능성 — 소량 분할 접근 권장
@@ -400,25 +552,9 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
   {mom_cards_html}
 </div>
 
-<!-- 모멘텀 요약 테이블 -->
+<!-- ETF 추천 상세 -->
 <div class="sec">
-  <div class="sec-title sec-title-orange">📋 단기 모멘텀 요약표</div>
-  <div style="overflow-x:auto">
-  <table class="sum-table">
-    <thead><tr>
-      <th>#</th>
-      <th style="text-align:left;padding-left:14px">종목명</th>
-      <th>업종</th><th>현재가</th><th>주간</th><th>12주</th>
-      <th>RSI</th><th>거래량</th><th>매수가</th><th>손절가</th><th>목표①</th><th>목표②</th><th>접근</th>
-    </tr></thead>
-    <tbody>{mom_rows_html}</tbody>
-  </table>
-  </div>
-</div>
-
-<!-- ETF 추천 모델 -->
-<div class="sec">
-  <div class="sec-title sec-title-blue">🔵 ETF 추천 TOP 5 <span class="model-badge badge-etf">퀀트 선정 · 레버리지·인버스 제외</span></div>
+  <div class="sec-title sec-title-blue">🔵 ETF 추천 TOP 5 — 상세 분석 <span class="model-badge badge-etf">퀀트 선정 · 레버리지·인버스 제외</span></div>
   <div class="model-intro">
     📌 <b>선정 기준</b>: 전체 ETF 대상(레버리지·인버스 제외) ①MA 추세(40%) ②변동성 대비 수익률(30%) ③RSI·MACD(20%) ④12주 모멘텀(10%) 종합 평가<br>
     ✅ <b>특징</b>: 분산 투자 효과, 일일 변동성 ≤4%, 중장기 보유에 적합
@@ -426,20 +562,14 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
   {etf_cards_html}
 </div>
 
-<!-- ETF 요약 테이블 -->
+<!-- 기관연동 한국 종목 상세 -->
 <div class="sec">
-  <div class="sec-title sec-title-blue">📋 ETF 추천 요약표</div>
-  <div style="overflow-x:auto">
-  <table class="sum-table">
-    <thead><tr>
-      <th>#</th>
-      <th style="text-align:left;padding-left:14px">ETF명</th>
-      <th>테마</th><th>현재가</th><th>주간</th><th>12주</th>
-      <th>RSI</th><th>거래량</th><th>매수가</th><th>손절가</th><th>목표①</th><th>목표②</th><th>접근</th>
-    </tr></thead>
-    <tbody>{etf_rows_html}</tbody>
-  </table>
+  <div class="sec-title sec-title-purple">🟣 기관연동 한국 종목 TOP 5 — 상세 분석 <span class="model-badge badge-inst">글로벌 기관 섹터 신호 + 기술적 지표</span></div>
+  <div class="model-intro">
+    📌 <b>선정 기준</b>: 안정 대장주 모델 베이스 + 글로벌 11개 기관 섹터 집중도 보너스(최대 +0.15) 적용 — 기관 집중 섹터와 일치하는 한국 종목 우선 선발<br>
+    ✅ <b>특징</b>: 글로벌 스마트머니 방향성과 한국 기술적 지표를 결합한 복합 모델
   </div>
+  {inst_cards_html}
 </div>
 
 <!-- 투자 원칙 -->
