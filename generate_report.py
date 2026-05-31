@@ -5,7 +5,7 @@ generate_report.py  -  세 모델(안정 대장주 TOP5 + 모멘텀 TOP5 + ETF T
 import weekly_analysis as wa
 import pandas as pd
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 prices = wa.load_recent_prices(days=200)
 master = wa.load_master()
@@ -40,6 +40,82 @@ except Exception as e:
 top5_stable = scored_stable.head(5)
 top5_mom    = scored_mom.head(5)
 date = prices['Date'].max().strftime('%Y-%m-%d')
+
+# 한국 시총 TOP5
+print("\n=== [한국 시총 TOP5] ===")
+try:
+    _db       = wa.get_db()
+    _latest   = prices['Date'].max()
+    _prev     = _latest - timedelta(days=7)
+    _kr_raw   = list(_db['stocks'].find(
+        {'marcap': {'$exists': True, '$gt': 0}},
+        {'_id': 0, 'code': 1, 'name': 1, 'marcap': 1}
+    ).sort('marcap', -1).limit(5))
+    kr_cap = []
+    for s in _kr_raw:
+        code = s['code']
+        sub  = prices[prices['Code'] == code].sort_values('Date')
+        if sub.empty:
+            kr_cap.append({'name': s['name'], 'code': code,
+                           'marcap': s['marcap'], 'price': 0, 'r1w': 0.0})
+            continue
+        cur  = int(sub.iloc[-1]['Close'])
+        prev_rows = sub[sub['Date'] >= _prev]
+        prev_c    = prev_rows.iloc[0]['Close'] if not prev_rows.empty else cur
+        r1w = round((cur - prev_c) / prev_c * 100, 2) if prev_c else 0.0
+        kr_cap.append({'name': s['name'], 'code': code,
+                       'marcap': s['marcap'], 'price': cur, 'r1w': r1w})
+    print(f"  완료: {len(kr_cap)}개")
+except Exception as _e:
+    print(f"  [경고] 한국 시총 TOP5 실패: {_e}")
+    kr_cap = []
+
+# 미국 시총 TOP5
+print("\n=== [미국 시총 TOP5] ===")
+_US_CANDIDATES = [
+    ('NVDA','NVIDIA'), ('AAPL','Apple'), ('MSFT','Microsoft'),
+    ('GOOGL','Alphabet'), ('AMZN','Amazon'), ('META','Meta'),
+    ('TSLA','Tesla'), ('AVGO','Broadcom'), ('BRK-B','Berkshire Hathaway'),
+    ('LLY','Eli Lilly'), ('V','Visa'), ('JPM','JPMorgan'),
+    ('WMT','Walmart'), ('NFLX','Netflix'), ('XOM','Exxon'),
+]
+try:
+    import yfinance as yf
+    _tickers  = [t for t, _ in _US_CANDIDATES]
+    _name_map = {t: n for t, n in _US_CANDIDATES}
+    _end_dt   = datetime.now()
+    _start_dt = _end_dt - timedelta(days=14)
+
+    _raw = yf.download(_tickers, start=_start_dt, end=_end_dt,
+                       interval='1d', progress=False, auto_adjust=True)
+    _closes = _raw['Close'] if isinstance(_raw.columns, pd.MultiIndex) else pd.DataFrame()
+
+    us_cap_list = []
+    for ticker in _tickers:
+        try:
+            obj = yf.Ticker(ticker)
+            mc  = getattr(obj.fast_info, 'market_cap', None) or 0
+            if mc <= 0:
+                mc = (obj.info or {}).get('marketCap', 0) or 0
+            if ticker in _closes.columns:
+                c = _closes[ticker].dropna()
+                price = round(float(c.iloc[-1]), 2) if not c.empty else 0
+                r1w   = round(float((c.iloc[-1] - c.iloc[0]) / c.iloc[0] * 100), 2) if len(c) >= 2 else 0
+            else:
+                price = round(getattr(obj.fast_info, 'last_price', 0) or 0, 2)
+                r1w   = 0
+            if mc > 0:
+                us_cap_list.append({'ticker': ticker, 'name': _name_map[ticker],
+                                    'marcap_b': round(mc / 1e9, 0),
+                                    'price': price, 'r1w': r1w})
+        except Exception:
+            pass
+    us_cap_list.sort(key=lambda x: -x['marcap_b'])
+    us_cap = us_cap_list[:5]
+    print(f"  완료: {len(us_cap)}개")
+except Exception as _e:
+    print(f"  [경고] US 시총 TOP5 실패: {_e}")
+    us_cap = []
 
 
 # -- 매매 레벨 수집 함수 ---------------------------------------------------
@@ -275,6 +351,20 @@ with open(out_path, 'w', encoding='utf-8') as f:
     f.write(f'US_DJ_RET={dj.get("ret", "")}\n')
     f.write(f'US_DJ_UP={dj.get("up", "")}\n')
     f.write(f'US_DJ_DN={dj.get("dn", "")}\n')
+    # 한국 시총 TOP5
+    for _i, _s in enumerate(kr_cap):
+        f.write(f'KR_CAP{_i}_NAME={_s["name"]}\n')
+        f.write(f'KR_CAP{_i}_CODE={_s["code"]}\n')
+        f.write(f'KR_CAP{_i}_MARCAP={_s["marcap"]}\n')
+        f.write(f'KR_CAP{_i}_PRICE={_s["price"]}\n')
+        f.write(f'KR_CAP{_i}_R1W={_s["r1w"]}\n')
+    # 미국 시총 TOP5
+    for _i, _s in enumerate(us_cap):
+        f.write(f'US_CAP{_i}_TICKER={_s["ticker"]}\n')
+        f.write(f'US_CAP{_i}_NAME={_s["name"]}\n')
+        f.write(f'US_CAP{_i}_MARCAP_B={int(_s["marcap_b"])}\n')
+        f.write(f'US_CAP{_i}_PRICE={_s["price"]}\n')
+        f.write(f'US_CAP{_i}_R1W={_s["r1w"]}\n')
 
     # 안정 대장주 모델 (S prefix)
     for i, lv in enumerate(levels_stable):

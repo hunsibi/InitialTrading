@@ -293,6 +293,86 @@ inst_rows_html = ''.join(summary_row('I', i, INST_COLORS, INST_STARS) for i in r
 
 inst_port_table = inst_portfolio_table()
 
+
+def market_cap_tables():
+    """한국/미국 시총 TOP5 테이블 HTML 생성"""
+    # 한국 시총
+    kr_rows = ''
+    for i in range(5):
+        name = g(f'KR_CAP{i}_NAME')
+        if not name:
+            break
+        code   = g(f'KR_CAP{i}_CODE')
+        marcap = g(f'KR_CAP{i}_MARCAP')
+        price  = g(f'KR_CAP{i}_PRICE')
+        r1w    = g(f'KR_CAP{i}_R1W')
+        try:    marcap_d = f'{int(float(marcap))/1e12:.1f}조원'
+        except: marcap_d = '-'
+        try:    price_d  = f'{int(float(price)):,}원'
+        except: price_d  = '-'
+        kr_rows += f'''<tr>
+          <td style="font-weight:900;color:#1a1a2e;font-size:15px">{i+1}</td>
+          <td class="sn">{name}<br><small style="color:#aaa;font-weight:400">{code}</small></td>
+          <td style="font-family:monospace;font-weight:700;font-size:13px">{marcap_d}</td>
+          <td style="font-family:monospace;font-size:13px">{price_d}</td>
+          <td>{fp_raw(r1w)}</td>
+        </tr>'''
+    if not kr_rows:
+        kr_rows = '<tr><td colspan="5" style="color:#aaa;padding:20px;text-align:center">한국 시총 데이터 없음</td></tr>'
+
+    # 미국 시총
+    us_rows = ''
+    for i in range(5):
+        ticker = g(f'US_CAP{i}_TICKER')
+        if not ticker:
+            break
+        name     = g(f'US_CAP{i}_NAME') or ticker
+        marcap_b = g(f'US_CAP{i}_MARCAP_B')
+        price    = g(f'US_CAP{i}_PRICE')
+        r1w      = g(f'US_CAP{i}_R1W')
+        try:    marcap_d = f'${int(float(marcap_b)):,}B'
+        except: marcap_d = '-'
+        try:    price_d  = f'${float(price):,.2f}'
+        except: price_d  = '-'
+        us_rows += f'''<tr>
+          <td style="font-weight:900;color:#1a1a2e;font-size:15px">{i+1}</td>
+          <td class="sn">{name}<br><small style="color:#aaa;font-weight:400">{ticker}</small></td>
+          <td style="font-family:monospace;font-weight:700;font-size:13px">{marcap_d}</td>
+          <td style="font-family:monospace;font-size:13px">{price_d}</td>
+          <td>{fp_raw(r1w)}</td>
+        </tr>'''
+    if not us_rows:
+        us_rows = '<tr><td colspan="5" style="color:#aaa;padding:20px;text-align:center">미국 시총 데이터 없음</td></tr>'
+
+    return f'''<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div class="summary-block">
+    <div class="summary-block-title">🇰🇷 한국 시가총액 TOP 5</div>
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:36px">#</th>
+        <th style="text-align:left;padding-left:14px">종목명</th>
+        <th>시가총액</th><th>현재가</th><th>주간</th>
+      </tr></thead>
+      <tbody>{kr_rows}</tbody>
+    </table>
+  </div>
+  <div class="summary-block">
+    <div class="summary-block-title">🇺🇸 미국 시가총액 TOP 5</div>
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:36px">#</th>
+        <th style="text-align:left;padding-left:14px">기업명</th>
+        <th>시가총액</th><th>현재가</th><th>주간</th>
+      </tr></thead>
+      <tbody>{us_rows}</tbody>
+    </table>
+  </div>
+</div>
+<style>@media(max-width:700px){{.mktcap-grid{{grid-template-columns:1fr !important}}}}</style>'''
+
+
+kr_us_cap_html = market_cap_tables()
+
 ks_ret = float(g('KOSPI_RET')  or 0)
 ks_up  = g('KOSPI_UP');  ks_dn = g('KOSPI_DN')
 kd_ret = float(g('KOSDAQ_RET') or 0)
@@ -449,7 +529,13 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
   </div>
 </div>
 
-<!-- ② 전체 요약표 모음 -->
+<!-- ② 한미 시총 TOP5 -->
+<div class="sec">
+  <div class="sec-title">🏆 시가총액 TOP 5 <span class="model-badge" style="background:#f5f5f5;color:#555">당일 기준</span></div>
+  {kr_us_cap_html}
+</div>
+
+<!-- ③ 전체 요약표 모음 -->
 <div class="sec">
   <div class="sec-title">📋 종목 추천 요약표</div>
 
@@ -518,7 +604,7 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
   </div>
 </div>
 
-<!-- ③ 글로벌 기관 포트폴리오 동향 -->
+<!-- ④ 글로벌 기관 포트폴리오 동향 -->
 <div class="sec">
   <div class="sec-title sec-title-global">🌍 글로벌 기관투자자 포트폴리오 동향 <span class="model-badge badge-global">SEC EDGAR 13F 공시 · 분기 기준</span></div>
   <div class="model-intro">
@@ -530,7 +616,7 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
 
 <div class="divider"></div>
 
-<!-- ④ 모델별 상세 카드 -->
+<!-- ⑤ 모델별 상세 카드 -->
 
 <!-- 안정 대장주 상세 -->
 <div class="sec">
