@@ -85,3 +85,14 @@ if inst_count > 0:
 for i in range(5):
     if g(f'I{i}_NAME'):
         print(parse_stock('I', i))
+
+# 한국 시총 TOP5
+for i in range(5):
+    if g(f'KR_CAP{i}_NAME'):
+        marcap_t = f"{int(float(g(f'KR_CAP{i}_MARCAP') or 0))/1e12:.1f}"
+        print(f"KR_CAP{i}={g(f'KR_CAP{i}_NAME')}|{g(f'KR_CAP{i}_CODE')}|{marcap_t}조원|{fi(g(f'KR_CAP{i}_PRICE'))}|{sp(g(f'KR_CAP{i}_R1W'))}")
+
+# 미국 시총 TOP5
+for i in range(5):
+    if g(f'US_CAP{i}_TICKER'):
+        print(f"US_CAP{i}={g(f'US_CAP{i}_NAME')}|{g(f'US_CAP{i}_TICKER')}|${g(f'US_CAP{i}_MARCAP_B')}B|${g(f'US_CAP{i}_PRICE')}|{sp(g(f'US_CAP{i}_R1W'))}")
