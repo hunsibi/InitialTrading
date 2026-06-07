@@ -130,6 +130,38 @@ def build_body(d: dict) -> str:
                   "| # | 종목 | 티커 | 시총 | 주가 | 주간 |",
                   "|---|---|---|---:|---:|---:|", *us_rows]
 
+    # 한국 시장 수급동향
+    def flow_rows(cat_prefix, label, sign):
+        cnt = int(g(d, f'{cat_prefix}_COUNT') or 0)
+        rows = []
+        for i in range(cnt):
+            v = g(d, f'{cat_prefix}_{i}')
+            if not v:
+                continue
+            p = v.split('|')
+            if len(p) < 3:
+                continue
+            amt = int(p[2])
+            rows.append(f"| {i+1} | {p[0]} | `{p[1]}` | {sign}{abs(amt):,}억원 |")
+        return rows
+
+    fb = flow_rows('KR_FOREIGN_BUY',  '외국인 순매수', '+')
+    fs = flow_rows('KR_FOREIGN_SELL', '외국인 순매도', '-')
+    ib = flow_rows('KR_INST_BUY',     '기관 순매수',   '+')
+    is_ = flow_rows('KR_INST_SELL',   '기관 순매도',   '-')
+
+    if any([fb, fs, ib, is_]):
+        parts.append("\n### 📊 한국 시장 수급동향")
+        hdr = ["| # | 종목 | 코드 | 금액 |", "|---|---|---|---:|"]
+        if fb:
+            parts += ["\n**🌏 외국인 순매수 TOP5**", *hdr, *fb]
+        if fs:
+            parts += ["\n**🌏 외국인 순매도 TOP5**", *hdr, *fs]
+        if ib:
+            parts += ["\n**🏛️ 기관 순매수 TOP5**", *hdr, *ib]
+        if is_:
+            parts += ["\n**🏛️ 기관 순매도 TOP5**", *hdr, *is_]
+
     # 글로벌 기관 동향
     inst_count = int(g(d, 'INST_COUNT') or 0)
     if inst_count > 0:

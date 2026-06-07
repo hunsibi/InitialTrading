@@ -96,3 +96,10 @@ for i in range(5):
 for i in range(5):
     if g(f'US_CAP{i}_TICKER'):
         print(f"US_CAP{i}={g(f'US_CAP{i}_NAME')}|{g(f'US_CAP{i}_TICKER')}|${g(f'US_CAP{i}_MARCAP_B')}B|${g(f'US_CAP{i}_PRICE')}|{sp(g(f'US_CAP{i}_R1W'))}")
+
+# 한국 시장 수급동향 (외국인/기관 순매수·순매도 TOP5)
+for cat in ('KR_FOREIGN_BUY', 'KR_FOREIGN_SELL', 'KR_INST_BUY', 'KR_INST_SELL'):
+    cnt = int(g(f'{cat}_COUNT') or 0)
+    print(f"{cat}_COUNT={cnt}")
+    for i in range(cnt):
+        print(f"{cat}_{i}={g(f'{cat}_{i}')}")
