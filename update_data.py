@@ -122,9 +122,9 @@ def run_update():
 
     if latest_dt is None:
         # DB 비어있음 (GitHub Actions 첫 실행 등) → 최근 1년치 전체 수집
-        print("  ▸ DB 비어있음 — 초기 전체 수집 시작 (최근 1년)")
+        print("  ▸ DB 비어있음 — 초기 전체 수집 시작 (최근 90일)")
         refresh_stocks()
-        start_date = end_date - timedelta(days=365)
+        start_date = end_date - timedelta(days=90)
     else:
         start_date = latest_dt + timedelta(days=1)
         print(f"  ▸ DB 최신 날짜  : {latest_dt.date()}")
