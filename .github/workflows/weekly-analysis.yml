@@ -88,20 +88,28 @@ jobs:
 
       - name: HTML 리포트 커밋 (reports/ 폴더)
         run: |
+          set -e
           REPORT=$(ls outputs/reports/report_*.html 2>/dev/null | sort -r | head -1)
           if [ -z "$REPORT" ]; then
-            echo "  리포트 파일 없음 — 건너뜀"
+            echo "  [경고] 리포트 파일 없음 — 건너뜀"
             exit 0
           fi
-          DATE=$(date +%Y-%m-%d)
+          # 리포트 파일명에서 날짜 추출 (시스템 날짜 대신 데이터 날짜 사용)
+          REPORT_DATE=$(basename "$REPORT" | sed 's/report_\(.*\)\.html/\1/')
+          echo "  리포트 날짜: $REPORT_DATE  (파일: $REPORT)"
           mkdir -p reports
-          cp "$REPORT" "reports/report_${DATE}.html"
+          cp "$REPORT" "reports/report_${REPORT_DATE}.html"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase origin master
-          git add reports/
-          git diff --staged --quiet && echo "  변경 없음" || \
-            (git commit -m "data: ${DATE} 주간 분析 리포트" && git push)
+          git add "reports/report_${REPORT_DATE}.html"
+          if git diff --staged --quiet; then
+            echo "  변경 없음 — 이미 커밋됨"
+          else
+            git commit -m "data: ${REPORT_DATE} 주간 분석 리포트"
+            git push origin HEAD:master
+            echo "  커밋 및 푸시 완료: reports/report_${REPORT_DATE}.html"
+          fi
 
       - name: GitHub Issue 생성
         env:
