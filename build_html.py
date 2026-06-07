@@ -295,85 +295,65 @@ inst_port_table = inst_portfolio_table()
 
 
 def kr_investor_flow_table():
-    """한국 외국인/기관 섹터 매매 동향 테이블 (2열 나란히)"""
-    f_count = int(g('KR_FOREIGN_COUNT') or 0)
-    i_count = int(g('KR_INST_COUNT')    or 0)
-    src     = g('KR_FLOW_SOURCE') or 'mongodb_volume'
-    is_real = (src == 'pykrx')
+    """한국 외국인/기관 종목별 순매수/매도 TOP5 테이블 (2×2 그리드)"""
+    fb  = int(g('KR_FOREIGN_BUY_COUNT')  or 0)
+    fs  = int(g('KR_FOREIGN_SELL_COUNT') or 0)
+    ib  = int(g('KR_INST_BUY_COUNT')     or 0)
+    is_ = int(g('KR_INST_SELL_COUNT')    or 0)
 
-    if f_count == 0 and i_count == 0:
+    if fb == 0 and fs == 0 and ib == 0 and is_ == 0:
         return ('<p style="color:#aaa;text-align:center;padding:24px">'
                 '매매 데이터 없음 — KRX_ID/KRX_PW 환경변수 미설정</p>')
 
-    buy_col  = '#e74c3c'
-    sell_col = '#2980b9'
-
-    def flow_rows(prefix, count):
+    def stock_rows(prefix, count, is_buy):
         if count == 0:
-            return '<tr><td colspan="5" style="color:#aaa;padding:20px;text-align:center">데이터 없음</td></tr>'
+            return '<tr><td colspan="3" style="color:#aaa;padding:12px;text-align:center">데이터 없음</td></tr>'
+        col = '#c0392b' if is_buy else '#2471a3'
+        ico = '▲' if is_buy else '▼'
         rows = ''
         for i in range(min(count, 5)):
-            sec    = g(f'{prefix}{i}_SECTOR')
-            net_b  = g(f'{prefix}{i}_NET_B')
-            dir_   = g(f'{prefix}{i}_DIR')
-            stocks = g(f'{prefix}{i}_STOCKS').replace('|', ' / ')
-            col    = buy_col if dir_ == 'BUY' else sell_col
-            dir_ko = '순매수' if dir_ == 'BUY' else '순매도'
-            ico    = '▲' if dir_ == 'BUY' else '▼'
-            try:
-                nv    = float(net_b)
-                net_d = f'{nv:.1f}배' if not is_real else f'{int(nv):,}억원'
-            except:
-                net_d = '-'
+            v = g(f'{prefix}{i}')
+            if not v: continue
+            p = v.split('|')
+            name  = p[0]
+            code  = p[1] if len(p) > 1 else ''
+            net_b = int(p[2]) if len(p) > 2 else 0
             rows += f'''<tr>
-              <td style="font-weight:900;color:#1a1a2e;font-size:14px">{i+1}</td>
-              <td class="sn">{sec}</td>
-              <td style="color:{col};font-weight:800">{ico} {dir_ko}</td>
-              <td style="font-family:monospace;color:{col};font-weight:700">{net_d}</td>
-              <td style="font-size:11px;color:#666;text-align:left;padding-left:8px">{stocks}</td>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">{i+1}</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">{name}</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">{code}</span>
+              </td>
+              <td style="font-family:monospace;color:{col};font-weight:700;white-space:nowrap">
+                {ico} {net_b:,}억원
+              </td>
             </tr>'''
         return rows
 
-    f_rows = flow_rows('KR_FOREIGN_', f_count)
-    i_rows = flow_rows('KR_INST_',    i_count)
+    def make_block(title, color, prefix, count, is_buy):
+        return f'''<div class="summary-block">
+    <div class="summary-block-title" style="color:{color}">{title}</div>
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:28px">#</th>
+        <th style="text-align:left;padding-left:10px">종목</th>
+        <th>거래대금</th>
+      </tr></thead>
+      <tbody>{stock_rows(prefix, count, is_buy)}</tbody>
+    </table>
+  </div>'''
 
-    f_title = '🌏 외국인 섹터 순매수/매도 TOP5' if is_real else '🌏 거래량 급증 섹터 TOP5 (매수 추정)'
-    i_title = '🏦 기관 섹터 순매수/매도 TOP5'  if is_real else '🏦 거래량 급증 섹터 TOP5 (매도 추정)'
-    src_note = '' if is_real else '<br>⚠️ KRX_ID/KRX_PW 미설정 — 거래량 기반 추정치 (실제 외국인/기관 구분 아님)'
+    blocks = (
+        make_block('🌏 외국인 순매수 TOP5 📈', '#c0392b', 'KR_FOREIGN_BUY_',  fb,  True)  +
+        make_block('🌏 외국인 순매도 TOP5 📉', '#2471a3', 'KR_FOREIGN_SELL_', fs,  False) +
+        make_block('🏦 기관 순매수 TOP5 📈',   '#c0392b', 'KR_INST_BUY_',     ib,  True)  +
+        make_block('🏦 기관 순매도 TOP5 📉',   '#2471a3', 'KR_INST_SELL_',    is_, False)
+    )
 
     return f'''<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-  <div class="summary-block">
-    <div class="summary-block-title" style="color:#c0392b">{f_title}</div>
-    <div style="overflow-x:auto">
-    <table class="sum-table">
-      <thead><tr>
-        <th style="width:32px">#</th>
-        <th style="text-align:left;padding-left:14px">섹터</th>
-        <th>방향</th>
-        <th>{"거래대금" if is_real else "거래량비율"}</th>
-        <th style="text-align:left;padding-left:8px">주요 종목</th>
-      </tr></thead>
-      <tbody>{f_rows}</tbody>
-    </table>
-    </div>
-  </div>
-  <div class="summary-block">
-    <div class="summary-block-title" style="color:#1565c0">{i_title}</div>
-    <div style="overflow-x:auto">
-    <table class="sum-table">
-      <thead><tr>
-        <th style="width:32px">#</th>
-        <th style="text-align:left;padding-left:14px">섹터</th>
-        <th>방향</th>
-        <th>{"거래대금" if is_real else "거래량비율"}</th>
-        <th style="text-align:left;padding-left:8px">주요 종목</th>
-      </tr></thead>
-      <tbody>{i_rows}</tbody>
-    </table>
-    </div>
-  </div>
-</div>{f'<p style="font-size:11px;color:#e65100;margin-top:8px">{src_note}</p>' if src_note else ''}
-<style>@media(max-width:700px){{.kr-flow-grid{{grid-template-columns:1fr !important}}}}</style>'''
+  {blocks}
+</div>
+<p style="font-size:11px;color:#888;margin-top:6px">KRX 공식 데이터 기준 · 주간 순매수/매도 거래대금</p>'''
 
 
 def inst_changes_table():

@@ -574,10 +574,12 @@ def load_kr_investor_flows() -> dict:
         if not doc:
             return {}
         return {
-            'date':    doc.get('date', ''),
-            '_source': doc.get('source', 'mongodb_volume'),
-            '외국인':  doc.get('외국인', []),
-            '기관':    doc.get('기관',   []),
+            'date':     doc.get('date', ''),
+            '_source':  doc.get('source', 'pykrx'),
+            '외국인_매수': doc.get('외국인_매수', []),
+            '외국인_매도': doc.get('외국인_매도', []),
+            '기관_매수':   doc.get('기관_매수',   []),
+            '기관_매도':   doc.get('기관_매도',   []),
         }
     except Exception as e:
         print(f"  [경고] kr_investor_flows 로드 실패: {e}")

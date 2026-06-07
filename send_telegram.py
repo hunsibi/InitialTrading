@@ -193,52 +193,41 @@ def build_inst_korean_section(d):
 
 
 def build_kr_investor_section(d):
-    """한국 외국인/기관 섹터 매매 동향 메시지."""
-    f_count = int(g(d, 'KR_FOREIGN_COUNT') or 0)
-    i_count = int(g(d, 'KR_INST_COUNT')    or 0)
-    if f_count == 0 and i_count == 0:
+    """한국 외국인/기관 종목별 순매수/매도 TOP5 메시지."""
+    fb = int(g(d, 'KR_FOREIGN_BUY_COUNT')  or 0)
+    fs = int(g(d, 'KR_FOREIGN_SELL_COUNT') or 0)
+    ib = int(g(d, 'KR_INST_BUY_COUNT')     or 0)
+    is_ = int(g(d, 'KR_INST_SELL_COUNT')   or 0)
+    if fb == 0 and fs == 0 and ib == 0 and is_ == 0:
         return ''
-    src     = g(d, 'KR_FLOW_SOURCE') or 'mongodb_volume'
-    is_real = (src == 'pykrx')
-    subtitle = ("_주간 순매수/매도 거래대금 기준 \\(KRX 공식\\)_" if is_real
-                else "_주간 거래량 급증 섹터 추정 \\(거래량 기반, KRX 로그인 필요\\)_")
-    lines = ["🇰🇷 *한국 시장 수급 동향*", subtitle]
 
-    def _format_val(net_b, is_real):
-        try:
-            nv = float(net_b)
-            return f'{nv:.1f}배' if not is_real else f'{int(nv):,}억원'
-        except:
-            return '-'
+    lines = ["🇰🇷 *한국 시장 외국인/기관 매매 동향*",
+             "_주간 순매수/매도 거래대금 기준 \\(KRX 공식 데이터\\)_"]
 
-    if f_count > 0:
-        f_title = "━━━ 🌏 외국인 섹터 TOP5 ━━━" if is_real else "━━━ 🌏 거래량 급증·상승 섹터 TOP5 ━━━"
-        lines += ["", f_title]
-        for i in range(min(f_count, 5)):
-            sec    = g(d, f'KR_FOREIGN_{i}_SECTOR')
-            net_b  = g(d, f'KR_FOREIGN_{i}_NET_B')
-            dir_   = g(d, f'KR_FOREIGN_{i}_DIR')
-            stks   = g(d, f'KR_FOREIGN_{i}_STOCKS').replace('|', ' / ')
-            ico    = "📈" if dir_ == 'BUY' else "📉"
-            dir_ko = ("순매수" if dir_ == 'BUY' else "순매도") if is_real else ("상승" if dir_ == 'BUY' else "하락")
-            net_d  = _format_val(net_b, is_real)
-            lines.append(f"{RANK_ICO[i]} *{sec}*  {ico} `{dir_ko} {net_d}`")
-            if stks:
-                lines.append(f"   주요: _{stks}_")
-    if i_count > 0:
-        i_title = "━━━ 🏦 기관 섹터 TOP5 ━━━" if is_real else "━━━ 🏦 거래량 급증·하락 섹터 TOP5 ━━━"
-        lines += ["", i_title]
-        for i in range(min(i_count, 5)):
-            sec    = g(d, f'KR_INST_{i}_SECTOR')
-            net_b  = g(d, f'KR_INST_{i}_NET_B')
-            dir_   = g(d, f'KR_INST_{i}_DIR')
-            stks   = g(d, f'KR_INST_{i}_STOCKS').replace('|', ' / ')
-            ico    = "📈" if dir_ == 'BUY' else "📉"
-            dir_ko = ("순매수" if dir_ == 'BUY' else "순매도") if is_real else ("상승" if dir_ == 'BUY' else "하락")
-            net_d  = _format_val(net_b, is_real)
-            lines.append(f"{RANK_ICO[i]} *{sec}*  {ico} `{dir_ko} {net_d}`")
-            if stks:
-                lines.append(f"   주요: _{stks}_")
+    def _stock_rows(prefix, count):
+        rows = []
+        for i in range(min(count, 5)):
+            v = g(d, f'{prefix}{i}')
+            if not v: continue
+            p = v.split('|')
+            name = p[0]; code = p[1] if len(p) > 1 else ''
+            net_b = int(p[2]) if len(p) > 2 else 0
+            rows.append(f"{RANK_ICO[i]} *{name}* `{code}`  `{net_b:,}억원`")
+        return rows
+
+    if fb > 0:
+        lines += ["", "━━━ 🌏 외국인 순매수 TOP5 📈 ━━━"]
+        lines += _stock_rows('KR_FOREIGN_BUY_', fb)
+    if fs > 0:
+        lines += ["", "━━━ 🌏 외국인 순매도 TOP5 📉 ━━━"]
+        lines += _stock_rows('KR_FOREIGN_SELL_', fs)
+    if ib > 0:
+        lines += ["", "━━━ 🏦 기관 순매수 TOP5 📈 ━━━"]
+        lines += _stock_rows('KR_INST_BUY_', ib)
+    if is_ > 0:
+        lines += ["", "━━━ 🏦 기관 순매도 TOP5 📉 ━━━"]
+        lines += _stock_rows('KR_INST_SELL_', is_)
+
     lines += ["", "⚠️ _퀀트 모델 자동 산출 — 투자 손익 책임은 본인에게 있습니다_"]
     return '\n'.join(lines)
 
