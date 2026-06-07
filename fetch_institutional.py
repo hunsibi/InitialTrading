@@ -237,6 +237,19 @@ def fetch_one_fund(name: str, cik: str):
 def upsert(doc: dict):
     coll = get_db()['institutional_holdings']
     coll.create_index('cik', unique=True)
+
+    # 이전 섹터 가중치 보존 → 변화 계산 (전분기 대비)
+    existing = coll.find_one({'cik': doc['cik']}, {'sector_weights': 1, '_id': 0})
+    if existing and existing.get('sector_weights'):
+        doc['prev_sector_weights'] = existing['sector_weights']
+        curr     = doc.get('sector_weights', {})
+        prev     = existing['sector_weights']
+        all_secs = set(curr) | set(prev)
+        changes  = {s: round(curr.get(s, 0.0) - prev.get(s, 0.0), 4) for s in all_secs}
+        doc['sector_changes'] = {k: v for k, v in changes.items() if abs(v) >= 0.01}
+    else:
+        doc['sector_changes'] = {}
+
     coll.update_one({'cik': doc['cik']}, {'$set': doc}, upsert=True)
 
 

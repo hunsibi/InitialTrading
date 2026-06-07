@@ -1,0 +1,106 @@
+name: 퀀트 분析 파이프라인
+
+on:
+  schedule:
+    # 평일 매일 07:00 UTC = 16:00 KST (장 마감 후)
+    - cron: '0 7 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  analysis:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 3.11 셋업
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 패키지 설치
+        run: pip install -r requirements.txt
+
+      - name: MongoDB 도구 설치 (mongodump / mongorestore)
+        run: |
+          wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
+          echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] \
+            https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
+            | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+          sudo apt-get update -qq
+          sudo apt-get install -y mongodb-database-tools
+
+      # 이전 실행의 MongoDB 데이터 복원 (캐시 hit → 증분 업데이트만 수행)
+      - name: MongoDB 캐시 복원
+        id: cache-restore
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/mongo-dump
+          key: mongodb-data-${{ github.run_id }}
+          restore-keys: |
+            mongodb-data-
+
+      - name: MongoDB 데이터 복원
+        run: |
+          if [ -d /tmp/mongo-dump/trading ]; then
+            mongorestore --host 127.0.0.1 --port 27017 /tmp/mongo-dump
+            echo "  캐시에서 데이터 복원 완료 — 증분 업데이트만 수행"
+          else
+            echo "  캐시 없음 — 전체 데이터 수집 (초최 1회만 오래 걸림)"
+          fi
+
+      - name: 설정 파일 생성 (Secrets → .py)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          KRX_ID_VAL: ${{ secrets.KRX_ID }}
+          KRX_PW_VAL: ${{ secrets.KRX_PW }}
+        run: |
+          python - <<'PYEOF'
+          import os
+          with open('telegram_config.py', 'w') as f:
+              f.write(f'BOT_TOKEN = {repr(os.environ.get("TELEGRAM_BOT_TOKEN",""))}\n')
+              f.write(f'CHAT_ID   = {repr(os.environ.get("TELEGRAM_CHAT_ID",""))}\n')
+          with open('krx_config.py', 'w') as f:
+              f.write(f'KRX_ID = {repr(os.environ.get("KRX_ID_VAL",""))}\n')
+              f.write(f'KRX_PW = {repr(os.environ.get("KRX_PW_VAL",""))}\n')
+          PYEOF
+
+      - name: 파이프라인 실행
+        run: python run_pipeline.py
+
+      - name: GitHub Issue 생성
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python create_github_issue.py
+
+      # 파이프라인 성공/실패 관계없이 항상 캐시 저장
+      - name: MongoDB 데이터 덤프
+        if: always()
+        run: |
+          mkdir -p /tmp/mongo-dump
+          mongodump --host 127.0.0.1 --port 27017 --out /tmp/mongo-dump
+
+      - name: MongoDB 캐시 저장
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/mongo-dump
+          key: mongodb-data-${{ github.run_id }}

@@ -73,10 +73,32 @@ def main():
     if r_inst.returncode != 0:
         print("  [경고] fetch_institutional.py 실패 — 캐시 데이터로 계속 진행")
 
+    # 한국 외국인/기관 매매 동향 수집 (실패해도 파이프라인 계속)
+    print(f"\n{'='*50}")
+    print("  [1-c/4] 한국 외국인/기관 매매 동향 수집 중...")
+    print('='*50)
+    r_kr = subprocess.run(
+        [sys.executable, os.path.join(BASE_DIR, 'fetch_kr_investor.py')],
+        capture_output=False, text=True
+    )
+    if r_kr.returncode != 0:
+        print("  [경고] fetch_kr_investor.py 실패 — 건너뜀 (pykrx 설치 확인)")
+
     run_step("[2/4] 퀀트 분석 실행 중...", "weekly_analysis.py")
     run_step("[3/4-a] 리포트 생성 중...", "generate_report.py")
     run_step("[3/4-b] HTML 빌드 중...", "build_html.py")
     run_step("[4/4] 텔레그램 전송 중...", "send_telegram.py")
+
+    # GitHub Issue 생성 (gh CLI 없으면 건너뜀)
+    print(f"\n{'='*50}")
+    print("  [4-b/4] GitHub Issue 생성 중...")
+    print('='*50)
+    r_gh = subprocess.run(
+        [sys.executable, os.path.join(BASE_DIR, 'create_github_issue.py')],
+        capture_output=False, text=True
+    )
+    if r_gh.returncode != 0:
+        print("  [경고] GitHub Issue 생성 실패 — gh CLI 설치/인증 확인 (선택 기능)")
 
     print("\n" + "="*50)
     print("  완료! 텔레그램을 확인하세요.")

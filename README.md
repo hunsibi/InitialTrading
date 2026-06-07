@@ -112,12 +112,12 @@ docker run -d -p 27017:27017 --name mongo mongo:latest
 python run_pipeline.py
 ```
 
-### 방법 3 — Claude Code `/분析` 커맨드
+### 방법 3 — Claude Code `/분석` 커맨드
 
 Claude Code 세션에서:
 
 ```
-/분析
+/분석
 ```
 
 전체 파이프라인 실행 + 텔레그램 전송 + TOP5 콘솔 출력까지 자동 처리.
@@ -150,7 +150,7 @@ InitialTrading/
 │       ├── weekly_full_DATE.html    # 파싱용 원본 데이터
 │       └── report_DATE.html         # 최종 HTML 리포트
 └── .claude/
-    └── commands/분析.md             # Claude Code 슬래시 커맨드
+    └── commands/분석.md             # Claude Code 슬래시 커맨드
 ```
 
 ---
@@ -183,7 +183,7 @@ InitialTrading/
 | DB | MongoDB `trading` DB — `prices` / `stocks` 컬렉션 |
 | 데이터 API | FinanceDataReader (KRX) |
 | 메시징 | 텔레그램 봇 |
-| 자동화 | Claude Code `/분析` 커맨드 |
+| 자동화 | Claude Code `/분석` 커맨드 |
 
 MongoDB 접속 순서: `localhost` → `host.docker.internal` → `172.17.0.1` → `172.18.0.1` → `192.168.65.2`  
 모두 실패 시 기존 CSV 데이터로 자동 fallback.

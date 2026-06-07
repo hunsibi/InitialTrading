@@ -1,5 +1,5 @@
 """
-주간 퀀트 분析 엔진 (weekly_analysis.py) — MongoDB 버전
+주간 퀀트 분석 엔진 (weekly_analysis.py) — MongoDB 버전
 =========================================================
 금요일 장 마감 후 실행 → 차주 유망종목 + 매수/손절/목표가 HTML 리포트 생성
 
@@ -566,6 +566,49 @@ def load_institutional_docs() -> list:
         return []
 
 
+def load_kr_investor_flows() -> dict:
+    """MongoDB kr_investor_flows 최신 데이터 로드 (fetch_kr_investor.py 저장분)."""
+    try:
+        db  = get_db()
+        doc = db['kr_investor_flows'].find_one(sort=[('date', -1)])
+        if not doc:
+            return {}
+        return {
+            'date':    doc.get('date', ''),
+            '_source': doc.get('source', 'mongodb_volume'),
+            '외국인':  doc.get('외국인', []),
+            '기관':    doc.get('기관',   []),
+        }
+    except Exception as e:
+        print(f"  [경고] kr_investor_flows 로드 실패: {e}")
+        return {}
+
+
+def load_institutional_changes() -> list:
+    """기관별 전분기 대비 섹터 가중치 변화 로드 (fetch_institutional.py 저장분)."""
+    try:
+        db   = get_db()
+        docs = list(db['institutional_holdings'].find(
+            {'sector_changes': {'$exists': True, '$ne': {}}},
+            {'_id': 0, 'name': 1, 'period_of_report': 1, 'sector_changes': 1}
+        ))
+        result = []
+        for doc in docs:
+            changes = doc.get('sector_changes', {})
+            if not changes:
+                continue
+            sorted_chg = sorted(changes.items(), key=lambda x: abs(x[1]), reverse=True)
+            result.append({
+                'name':        doc.get('name', ''),
+                'period':      doc.get('period_of_report', ''),
+                'top_changes': sorted_chg[:3],
+            })
+        return result
+    except Exception as e:
+        print(f"  [경고] institutional_changes 로드 실패: {e}")
+        return []
+
+
 def calc_sector_boost(kr_sector: str, inst_weights: dict) -> float:
     """한국 업종 → US 섹터 매핑 → 기관 가중치 기반 부스트 (최대 0.15)."""
     for us_sec, kr_list in US_TO_KR_SECTOR.items():
@@ -790,7 +833,7 @@ def portfolio_weekly(prices: pd.DataFrame) -> pd.DataFrame:
 
 def run():
     print("\n" + "="*60)
-    print("  검색 주간 퀀트 분析 시작 (MongoDB - 대장주 안정 모델)")
+    print("  검색 주간 퀀트 분석 시작 (MongoDB - 대장주 안정 모델)")
     print("="*60)
 
     try:
@@ -804,7 +847,7 @@ def run():
     prices = load_recent_prices(days=200)
     master = load_master()
     analysis_date = prices['Date'].max().strftime('%Y-%m-%d')
-    print(f"  분析 기준일: {analysis_date}")
+    print(f"  분석 기준일: {analysis_date}")
 
     print("\n[2/5] 기술 지표 계산...")
     ind = compute_indicators_vectorized(prices)

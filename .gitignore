@@ -1,5 +1,6 @@
 # 민감 정보
 telegram_config.py
+krx_config.py
 
 # 대용량 데이터
 outputs/data/prices_*.csv

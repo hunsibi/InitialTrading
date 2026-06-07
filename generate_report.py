@@ -555,3 +555,55 @@ with open(out_path, 'a', encoding='utf-8') as f:
             f.write(f'I{i}_CAUTION={caution}\n')
 
 print(f'\n  [기관연동] 완료 — {len(levels_inst)}개 종목, {len(inst_docs)}개 기관 동향')
+
+# -- 한국 외국인/기관 매매 동향 --------------------------------------------
+print("\n=== [한국 외국인/기관 섹터 매매 동향] ===")
+try:
+    kr_flows   = wa.load_kr_investor_flows()
+    kr_foreign = kr_flows.get('외국인', [])
+    kr_inst_f  = kr_flows.get('기관',   [])
+except Exception as _e:
+    print(f"  [경고] 한국 매매동향 로드 실패: {_e}")
+    kr_foreign = []; kr_inst_f = []
+
+# -- 글로벌 기관 투자 변화 -------------------------------------------------
+print("\n=== [글로벌 기관 투자 변화] ===")
+try:
+    inst_changes = wa.load_institutional_changes()
+except Exception as _e:
+    print(f"  [경고] 기관 변화 로드 실패: {_e}")
+    inst_changes = []
+
+with open(out_path, 'a', encoding='utf-8') as f:
+    # 데이터 source (pykrx=실데이터 / mongodb_volume=거래량 추정)
+    _kr_src = kr_flows.get('_source', 'mongodb_volume') if kr_flows else 'mongodb_volume'
+    f.write(f'KR_FLOW_SOURCE={_kr_src}\n')
+
+    # 외국인 섹터 순매수
+    f.write(f'KR_FOREIGN_COUNT={len(kr_foreign)}\n')
+    for _i, _item in enumerate(kr_foreign):
+        f.write(f'KR_FOREIGN_{_i}_SECTOR={_item["sector"]}\n')
+        f.write(f'KR_FOREIGN_{_i}_NET_B={int(_item["net_abs_b"])}\n')
+        f.write(f'KR_FOREIGN_{_i}_DIR={_item["dir"]}\n')
+        f.write(f'KR_FOREIGN_{_i}_STOCKS={"|".join(_item.get("top_stocks", []))}\n')
+
+    # 기관 섹터 순매수
+    f.write(f'KR_INST_COUNT={len(kr_inst_f)}\n')
+    for _i, _item in enumerate(kr_inst_f):
+        f.write(f'KR_INST_{_i}_SECTOR={_item["sector"]}\n')
+        f.write(f'KR_INST_{_i}_NET_B={int(_item["net_abs_b"])}\n')
+        f.write(f'KR_INST_{_i}_DIR={_item["dir"]}\n')
+        f.write(f'KR_INST_{_i}_STOCKS={"|".join(_item.get("top_stocks", []))}\n')
+
+    # 글로벌 기관 투자 변화
+    f.write(f'INST_CHNG_COUNT={len(inst_changes)}\n')
+    for _i, _item in enumerate(inst_changes):
+        f.write(f'INST_CHNG_{_i}_FUND={_item["name"]}\n')
+        f.write(f'INST_CHNG_{_i}_PERIOD={_item["period"]}\n')
+        for _j, (_sec, _delta) in enumerate(_item["top_changes"]):
+            _sign = '+' if _delta > 0 else ''
+            f.write(f'INST_CHNG_{_i}_S{_j}={_sec}\n')
+            f.write(f'INST_CHNG_{_i}_S{_j}_D={_sign}{_delta*100:.1f}%p\n')
+            f.write(f'INST_CHNG_{_i}_S{_j}_DIR={"▲증가" if _delta > 0 else "▼감소"}\n')
+
+print(f'  [매매동향] 외국인 {len(kr_foreign)}섹터 / 기관 {len(kr_inst_f)}섹터 / 기관변화 {len(inst_changes)}건')

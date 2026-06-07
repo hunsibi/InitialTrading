@@ -294,6 +294,150 @@ inst_rows_html = ''.join(summary_row('I', i, INST_COLORS, INST_STARS) for i in r
 inst_port_table = inst_portfolio_table()
 
 
+def kr_investor_flow_table():
+    """한국 외국인/기관 섹터 매매 동향 테이블 (2열 나란히)"""
+    f_count = int(g('KR_FOREIGN_COUNT') or 0)
+    i_count = int(g('KR_INST_COUNT')    or 0)
+    src     = g('KR_FLOW_SOURCE') or 'mongodb_volume'
+    is_real = (src == 'pykrx')
+
+    if f_count == 0 and i_count == 0:
+        return ('<p style="color:#aaa;text-align:center;padding:24px">'
+                '매매 데이터 없음 — KRX_ID/KRX_PW 환경변수 미설정</p>')
+
+    buy_col  = '#e74c3c'
+    sell_col = '#2980b9'
+
+    def flow_rows(prefix, count):
+        if count == 0:
+            return '<tr><td colspan="5" style="color:#aaa;padding:20px;text-align:center">데이터 없음</td></tr>'
+        rows = ''
+        for i in range(min(count, 5)):
+            sec    = g(f'{prefix}{i}_SECTOR')
+            net_b  = g(f'{prefix}{i}_NET_B')
+            dir_   = g(f'{prefix}{i}_DIR')
+            stocks = g(f'{prefix}{i}_STOCKS').replace('|', ' / ')
+            col    = buy_col if dir_ == 'BUY' else sell_col
+            dir_ko = '순매수' if dir_ == 'BUY' else '순매도'
+            ico    = '▲' if dir_ == 'BUY' else '▼'
+            try:
+                nv    = float(net_b)
+                net_d = f'{nv:.1f}배' if not is_real else f'{int(nv):,}억원'
+            except:
+                net_d = '-'
+            rows += f'''<tr>
+              <td style="font-weight:900;color:#1a1a2e;font-size:14px">{i+1}</td>
+              <td class="sn">{sec}</td>
+              <td style="color:{col};font-weight:800">{ico} {dir_ko}</td>
+              <td style="font-family:monospace;color:{col};font-weight:700">{net_d}</td>
+              <td style="font-size:11px;color:#666;text-align:left;padding-left:8px">{stocks}</td>
+            </tr>'''
+        return rows
+
+    f_rows = flow_rows('KR_FOREIGN_', f_count)
+    i_rows = flow_rows('KR_INST_',    i_count)
+
+    f_title = '🌏 외국인 섹터 순매수/매도 TOP5' if is_real else '🌏 거래량 급증 섹터 TOP5 (매수 추정)'
+    i_title = '🏦 기관 섹터 순매수/매도 TOP5'  if is_real else '🏦 거래량 급증 섹터 TOP5 (매도 추정)'
+    src_note = '' if is_real else '<br>⚠️ KRX_ID/KRX_PW 미설정 — 거래량 기반 추정치 (실제 외국인/기관 구분 아님)'
+
+    return f'''<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div class="summary-block">
+    <div class="summary-block-title" style="color:#c0392b">{f_title}</div>
+    <div style="overflow-x:auto">
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:32px">#</th>
+        <th style="text-align:left;padding-left:14px">섹터</th>
+        <th>방향</th>
+        <th>{"거래대금" if is_real else "거래량비율"}</th>
+        <th style="text-align:left;padding-left:8px">주요 종목</th>
+      </tr></thead>
+      <tbody>{f_rows}</tbody>
+    </table>
+    </div>
+  </div>
+  <div class="summary-block">
+    <div class="summary-block-title" style="color:#1565c0">{i_title}</div>
+    <div style="overflow-x:auto">
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:32px">#</th>
+        <th style="text-align:left;padding-left:14px">섹터</th>
+        <th>방향</th>
+        <th>{"거래대금" if is_real else "거래량비율"}</th>
+        <th style="text-align:left;padding-left:8px">주요 종목</th>
+      </tr></thead>
+      <tbody>{i_rows}</tbody>
+    </table>
+    </div>
+  </div>
+</div>{f'<p style="font-size:11px;color:#e65100;margin-top:8px">{src_note}</p>' if src_note else ''}
+<style>@media(max-width:700px){{.kr-flow-grid{{grid-template-columns:1fr !important}}}}</style>'''
+
+
+def inst_changes_table():
+    """글로벌 기관 전분기 대비 섹터 투자 변화 테이블"""
+    count = int(g('INST_CHNG_COUNT') or 0)
+    if count == 0:
+        return ('<p style="color:#aaa;text-align:center;padding:24px">'
+                '섹터 변화 데이터 없음 — 분기 공시 갱신 후 표시됩니다</p>')
+
+    sector_colors = {
+        'Technology': '#1565c0', 'Healthcare': '#2e7d32', 'Financials': '#e65100',
+        'Energy': '#6a1b9a',     'Consumer':  '#c62828',  'Industrials': '#37474f',
+        'Real Estate': '#00695c','Materials': '#4e342e',  'Communication': '#0277bd',
+        'Utilities': '#558b2f',  'Other': '#78909c',
+    }
+
+    def sec_badge(s):
+        col = sector_colors.get(s, '#78909c')
+        return (f'<span style="background:{col}18;color:{col};border:1px solid {col}44;'
+                f'padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;'
+                f'white-space:nowrap">{s}</span>')
+
+    rows = ''
+    for i in range(min(count, 11)):
+        fund   = g(f'INST_CHNG_{i}_FUND')
+        if not fund:
+            break
+        period = g(f'INST_CHNG_{i}_PERIOD')
+        cells  = ''
+        for j in range(3):
+            sec  = g(f'INST_CHNG_{i}_S{j}')
+            dval = g(f'INST_CHNG_{i}_S{j}_D')
+            dir_ = g(f'INST_CHNG_{i}_S{j}_DIR')
+            if not sec:
+                cells += '<td>-</td><td>-</td>'
+                continue
+            dcol = '#e74c3c' if '증가' in dir_ else '#2980b9'
+            cells += (f'<td style="text-align:center">{sec_badge(sec)}</td>'
+                      f'<td style="color:{dcol};font-weight:800;font-family:monospace;'
+                      f'white-space:nowrap">{dir_} {dval}</td>')
+        rows += f'''<tr>
+          <td class="sn" style="font-size:13px;font-weight:800">{fund}</td>
+          <td style="font-size:11px;color:#777;white-space:nowrap">{period}</td>
+          {cells}
+        </tr>'''
+
+    return f'''<div style="overflow-x:auto">
+<table class="sum-table">
+  <thead><tr>
+    <th style="text-align:left;padding-left:14px">기관명</th>
+    <th>기준분기</th>
+    <th>변화①섹터</th><th>변화①폭</th>
+    <th>변화②섹터</th><th>변화②폭</th>
+    <th>변화③섹터</th><th>변화③폭</th>
+  </tr></thead>
+  <tbody>{rows}</tbody>
+</table>
+</div>'''
+
+
+kr_flow_html      = kr_investor_flow_table()
+inst_changes_html = inst_changes_table()
+
+
 def market_cap_tables():
     """한국/미국 시총 TOP5 테이블 HTML 생성"""
     # 한국 시총
@@ -535,6 +679,16 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
   {kr_us_cap_html}
 </div>
 
+<!-- ②-b 한국 외국인/기관 섹터 매매 동향 -->
+<div class="sec">
+  <div class="sec-title" style="border-left-color:#c0392b">🇰🇷 한국 시장 수급 동향 <span class="model-badge" style="background:#fdecea;color:#c0392b">외국인/기관 섹터 매매 · 주간 기준</span></div>
+  <div class="model-intro">
+    📌 <b>데이터 출처</b>: pykrx (KRX 공식 데이터) — KRX_ID/KRX_PW 환경변수 미설정 시 MongoDB 거래량 기반 추정<br>
+    ✅ <b>활용 방법</b>: 외국인·기관의 자금 쏠림 섹터를 파악하고 기관연동 모델의 한국 수혜 업종과 교차 확인
+  </div>
+  {kr_flow_html}
+</div>
+
 <!-- ③ 전체 요약표 모음 -->
 <div class="sec">
   <div class="sec-title">📋 종목 추천 요약표</div>
@@ -612,6 +766,16 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
     ✅ <b>활용 방법</b>: 글로벌 스마트머니의 섹터 집중도를 확인하고, 동일 방향성의 한국 종목(기관연동 모델)에 가중치 부여
   </div>
   {inst_port_table}
+</div>
+
+<!-- ④-b 글로벌 기관 투자 변화 분석 -->
+<div class="sec">
+  <div class="sec-title sec-title-global">📊 글로벌 기관 투자 변화 분석 <span class="model-badge badge-global">전분기 대비 섹터 비중 변화</span></div>
+  <div class="model-intro">
+    📌 <b>데이터 출처</b>: SEC EDGAR 13F 분기 공시 — 신규 분기 데이터 갱신 시 자동 비교<br>
+    ✅ <b>활용 방법</b>: 섹터 비중을 늘린 기관은 해당 업종에 장기 베팅 중 — 한국 동일 업종 기관연동 종목과 연계 분석
+  </div>
+  {inst_changes_html}
 </div>
 
 <div class="divider"></div>
