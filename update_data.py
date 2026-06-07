@@ -27,11 +27,11 @@ def get_db():
 
 
 # ── MongoDB 최신 날짜 조회 ────────────────────────────
-def get_latest_date() -> datetime:
+def get_latest_date():
     db  = get_db()
     doc = db['prices'].find_one(sort=[('date', -1)], projection={'date':1, '_id':0})
     if not doc:
-        raise RuntimeError("DB에 데이터가 없습니다. migrate_to_db.py를 먼저 실행하세요.")
+        return None  # DB 비어있음 → 초기 전체 수집 모드
     return datetime.strptime(doc['date'], '%Y-%m-%d')
 
 
@@ -117,11 +117,18 @@ def run_update():
         return
 
     # 최신 날짜 확인
-    latest_dt  = get_latest_date()
-    start_date = latest_dt + timedelta(days=1)
-    end_date   = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    latest_dt = get_latest_date()
+    end_date  = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
-    print(f"  ▸ DB 최신 날짜  : {latest_dt.date()}")
+    if latest_dt is None:
+        # DB 비어있음 (GitHub Actions 첫 실행 등) → 최근 1년치 전체 수집
+        print("  ▸ DB 비어있음 — 초기 전체 수집 시작 (최근 1년)")
+        refresh_stocks()
+        start_date = end_date - timedelta(days=365)
+    else:
+        start_date = latest_dt + timedelta(days=1)
+        print(f"  ▸ DB 최신 날짜  : {latest_dt.date()}")
+
     print(f"  ▸ 다운로드 범위 : {start_date.date()} ~ {end_date.date()}")
 
     bdays = pd.bdate_range(start=start_date, end=end_date)
@@ -130,8 +137,10 @@ def run_update():
         return
     print(f"  ▸ 예상 영업일  : {len(bdays)}일\n")
 
-    # 종목 리스트
-    db      = get_db()
+    # 종목 리스트 (stocks가 비어있으면 refresh)
+    db = get_db()
+    if db['stocks'].count_documents({}) == 0:
+        refresh_stocks()
     tickers = [d['code'] for d in db['stocks'].find({}, {'code':1,'_id':0})]
     print(f"  ▸ 대상 종목 수  : {len(tickers):,}개")
 
