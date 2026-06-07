@@ -23,7 +23,7 @@ run_pipeline.py              ← 진입점 (/분석 및 2_weekly.bat 모두 이�
   ├── generate_report.py     ← weekly_full_DATE.html 데이터 파일 생성
   ├── build_html.py          ← 최종 HTML 리포트 렌더링
   ├── send_telegram.py       ← 텔레그램 봇으로 6개 메시지 전송
-  └── create_github_issue.py ← 분析 결과를 GitHub Issue로 등록 (gh CLI 필요)
+  └── create_github_issue.py ← 분석 결과를 GitHub Issue로 등록 (gh CLI 필요)
 ```
 
 ## 4개 추천 모델
@@ -108,10 +108,10 @@ outputs/reports/report_*.html      ← 최종 HTML 리포트
 
 ## GitHub 히스토리
 
-- **GitHub Issues**: 분析 완료 시 `[YYYY-MM-DD] 주간 퀀트 분析` 이슈 자동 생성 (`weekly-analysis` 라벨)
+- **GitHub Issues**: 분석 완료 시 `[YYYY-MM-DD] 주간 퀀트 분석` 이슈 자동 생성 (`weekly-analysis` 라벨)
   - Issue 포함 내용: 시장요약, 한국 시총 TOP5, 한국 수급동향(외국인·기관 순매수·매도), 종목 추천 TOP5, HTML 리포트 링크
 - **GitHub Actions**: `.github/workflows/weekly-analysis.yml` — **평일 매일 17:00 KST** 자동 실행 + 수동 트리거(`workflow_dispatch`) 지원
-  - 수동 실행: GitHub → Actions 탭 → "퀀트 분析 파이프라인" → Run workflow
+  - 수동 실행: GitHub → Actions 탭 → "퀀트 분석 파이프라인" → Run workflow
 - **HTML 리포트**: Actions 실행 시 `reports/report_YYYY-MM-DD.html`로 커밋 후 Issue에 링크 첨부
   - 파일명 날짜 = 데이터 날짜(prices 최신일) 기준 — 시스템 날짜 사용 시 404 발생
 - **로컬 Issue 생성**: `gh auth login` 후 파이프라인 실행 시 자동 처리

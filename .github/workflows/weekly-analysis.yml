@@ -1,4 +1,4 @@
-name: 퀀트 분析 파이프라인
+name: 퀀트 분석 파이프라인
 
 on:
   schedule:

@@ -7,7 +7,7 @@ type: project
 
 - `fetch_kr_investor.py` — 한국 외국인/기관 섹터 매매 동향 수집 (pykrx 우선, MongoDB 볼륨 폴백)
 - `krx_config.py` — KRX 로그인 정보 (KRX_ID=hunsibi, .gitignore 등록)
-- `create_github_issue.py` — 분析 결과를 날짜별 GitHub Issue로 자동 등록 (`weekly-analysis` 라벨)
+- `create_github_issue.py` — 분석 결과를 날짜별 GitHub Issue로 자동 등록 (`weekly-analysis` 라벨)
 - `requirements.txt` — GitHub Actions용 Python 의존성
 - `.github/workflows/weekly-analysis.yml` — 평일 매일 17:00 KST 자동 실행
 
@@ -26,7 +26,7 @@ type: project
 - `weekly_analysis.py` — load_kr_investor_flows(), load_institutional_changes() 추가; 새 KR investor 포맷 대응
 - `generate_report.py` — KR_FLOW, KR_FOREIGN_BUY/SELL, KR_INST_BUY/SELL 키 추가
 - `build_html.py` — kr_investor_flow_table() 2×2 그리드 (종목명+코드+억원), inst_changes_table() 추가
-- `send_telegram.py` — 메시지 4→6개 (한국 매매 동향 + 기관 변화 분析 추가)
+- `send_telegram.py` — 메시지 4→6개 (한국 매매 동향 + 기관 변화 분석 추가)
 - `run_pipeline.py` — [1-c/4] fetch_kr_investor, [4-b/4] GitHub Issue 생성 (GITHUB_ACTIONS 환경에서는 건너뜀)
 - `create_github_issue.py` — get_repo(), get_report_url() 추가; Issue 본문에 HTML 리포트 URL 첨부; 한국 수급동향 섹션 추가
 - `.github/workflows/weekly-analysis.yml` — contents: write 권한, HTML 리포트 커밋(reports/ 폴더) → Issue 생성 순서 확정
@@ -51,7 +51,7 @@ type: project
 
 ## 한자 교체
 
-- 모든 파일에서 `析`(한자) → `석`(한글) 전면 교체 완료
+- 모든 파일에서 `석`(한자) → `석`(한글) 전면 교체 완료
 
 **Why:** 한자가 깨져 보이는 문제
-**How to apply:** 앞으로 코드/문서에 분析 대신 반드시 분析(한글) 사용
+**How to apply:** 앞으로 코드/문서에 분석(한자) 대신 반드시 분석(한글) 사용

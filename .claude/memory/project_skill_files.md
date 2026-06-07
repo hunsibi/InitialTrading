@@ -6,11 +6,11 @@ type: project
 D:\WorkSpace\InitialTrading 에 두 개의 스킬 파일이 있다:
 
 - `weekly-quant.skill` → `/weekly-quant` 커맨드 (name: weekly-quant)
-- `분析.skill` → `/분석` 커맨드 (name: 분석)
+- `분석.skill` → `/분석` 커맨드 (name: 분석)
 
 두 파일 모두 동일한 파이프라인 로직을 가진다:
 
-1. `python run_pipeline.py 2>&1` 실행 (MongoDB 접속 → 데이터 업데이트 → 퀀트 분析 → 리포트 생성 → 텔레그램 전송)
+1. `python run_pipeline.py 2>&1` 실행 (MongoDB 접속 → 데이터 업데이트 → 퀀트 분석 → 리포트 생성 → 텔레그램 전송)
 2. 성공: "완료! 텔레그램을 확인하세요" 포함 시 pipeline_ok=True
 3. 실패: "MongoDB에 연결할 수 없습니다" 포함 시 기존 데이터로 fallback
 4. `python parse_report.py` 실행 → outputs/reports/weekly_full_*.html 파싱
