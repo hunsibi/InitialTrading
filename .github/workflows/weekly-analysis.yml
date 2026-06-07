@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      contents: read
+      contents: write
 
     services:
       mongodb:
@@ -85,6 +85,23 @@ jobs:
 
       - name: 파이프라인 실행
         run: python run_pipeline.py
+
+      - name: HTML 리포트 커밋 (reports/ 폴더)
+        run: |
+          REPORT=$(ls outputs/reports/report_*.html 2>/dev/null | sort -r | head -1)
+          if [ -z "$REPORT" ]; then
+            echo "  리포트 파일 없음 — 건너뜀"
+            exit 0
+          fi
+          DATE=$(date +%Y-%m-%d)
+          mkdir -p reports
+          cp "$REPORT" "reports/report_${DATE}.html"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin master
+          git add reports/
+          git diff --staged --quiet && echo "  변경 없음" || \
+            (git commit -m "data: ${DATE} 주간 분析 리포트" && git push)
 
       - name: GitHub Issue 생성
         env:

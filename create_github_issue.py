@@ -3,10 +3,35 @@ create_github_issue.py
 주간 분석 결과를 GitHub Issue로 자동 등록 (날짜별 히스토리).
 로컬: gh auth login 필요 / GitHub Actions: GH_TOKEN 자동 설정
 """
-import os, sys, subprocess
+import os, sys, subprocess, glob
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LABEL = 'weekly-analysis'
+
+
+def get_repo() -> str:
+    """현재 GitHub repo (owner/name) 반환. Actions: 환경변수, 로컬: gh CLI."""
+    repo = os.environ.get('GITHUB_REPOSITORY', '')
+    if repo:
+        return repo
+    try:
+        r = subprocess.run(
+            ['gh', 'repo', 'view', '--json', 'nameWithOwner', '--jq', '.nameWithOwner'],
+            capture_output=True, text=True, cwd=BASE_DIR
+        )
+        if r.returncode == 0:
+            return r.stdout.strip()
+    except Exception:
+        pass
+    return ''
+
+
+def get_report_url(date: str) -> str:
+    """reports/report_{date}.html 의 GitHub URL 반환."""
+    repo = get_repo()
+    if repo and date:
+        return f"https://github.com/{repo}/blob/master/reports/report_{date}.html"
+    return ''
 
 
 def run_parse() -> dict:
@@ -120,6 +145,11 @@ def build_body(d: dict) -> str:
                 f"| {p[0]} | {p[2] if len(p)>2 else '-'} |"
                 f" {p[3] if len(p)>3 else '-'} | {p[4] if len(p)>4 else '-'} |"
             )
+
+    # HTML 리포트 링크 (reports/ 폴더에 커밋된 경우)
+    report_url = get_report_url(date)
+    if report_url:
+        parts.append(f"\n---\n📎 **[HTML 리포트 열기]({report_url})**")
 
     parts += ["\n---",
               "_⚠️ 퀀트 모델 자동 산출 결과 — 투자 손익 책임은 본인에게 있습니다_"]
