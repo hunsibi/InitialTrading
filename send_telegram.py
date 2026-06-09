@@ -193,16 +193,18 @@ def build_inst_korean_section(d):
 
 
 def build_kr_investor_section(d):
-    """한국 외국인/기관 종목별 순매수/매도 TOP5 메시지."""
-    fb = int(g(d, 'KR_FOREIGN_BUY_COUNT')  or 0)
-    fs = int(g(d, 'KR_FOREIGN_SELL_COUNT') or 0)
-    ib = int(g(d, 'KR_INST_BUY_COUNT')     or 0)
-    is_ = int(g(d, 'KR_INST_SELL_COUNT')   or 0)
-    if fb == 0 and fs == 0 and ib == 0 and is_ == 0:
+    """한국 외국인/기관/개인 종목별 순매수/매도 TOP5 메시지."""
+    fb  = int(g(d, 'KR_FOREIGN_BUY_COUNT')  or 0)
+    fs  = int(g(d, 'KR_FOREIGN_SELL_COUNT') or 0)
+    ib  = int(g(d, 'KR_INST_BUY_COUNT')     or 0)
+    is_ = int(g(d, 'KR_INST_SELL_COUNT')    or 0)
+    pb  = int(g(d, 'KR_INDIV_BUY_COUNT')    or 0)
+    ps  = int(g(d, 'KR_INDIV_SELL_COUNT')   or 0)
+    if fb == 0 and fs == 0 and ib == 0 and is_ == 0 and pb == 0 and ps == 0:
         return ''
 
-    lines = ["🇰🇷 *한국 시장 외국인/기관 매매 동향*",
-             "_주간 순매수/매도 거래대금 기준 \\(KRX 공식 데이터\\)_"]
+    lines = ["🇰🇷 *한국 시장 외국인/기관/개인 매매 동향*",
+             "_당일 순매수/매도 거래대금 기준 \\(KRX 공식 데이터\\)_"]
 
     def _stock_rows(prefix, count):
         rows = []
@@ -210,7 +212,7 @@ def build_kr_investor_section(d):
             v = g(d, f'{prefix}{i}')
             if not v: continue
             p = v.split('|')
-            name = p[0]; code = p[1] if len(p) > 1 else ''
+            name  = p[0]; code = p[1] if len(p) > 1 else ''
             net_b = int(p[2]) if len(p) > 2 else 0
             rows.append(f"{RANK_ICO[i]} *{name}* `{code}`  `{net_b:,}억원`")
         return rows
@@ -227,6 +229,12 @@ def build_kr_investor_section(d):
     if is_ > 0:
         lines += ["", "━━━ 🏦 기관 순매도 TOP5 📉 ━━━"]
         lines += _stock_rows('KR_INST_SELL_', is_)
+    if pb > 0:
+        lines += ["", "━━━ 👤 개인 순매수 TOP5 📈 ━━━"]
+        lines += _stock_rows('KR_INDIV_BUY_', pb)
+    if ps > 0:
+        lines += ["", "━━━ 👤 개인 순매도 TOP5 📉 ━━━"]
+        lines += _stock_rows('KR_INDIV_SELL_', ps)
 
     lines += ["", "⚠️ _퀀트 모델 자동 산출 — 투자 손익 책임은 본인에게 있습니다_"]
     return '\n'.join(lines)

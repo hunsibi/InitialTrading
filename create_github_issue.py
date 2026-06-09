@@ -145,13 +145,15 @@ def build_body(d: dict) -> str:
             rows.append(f"| {i+1} | {p[0]} | `{p[1]}` | {sign}{abs(amt):,}억원 |")
         return rows
 
-    fb = flow_rows('KR_FOREIGN_BUY',  '외국인 순매수', '+')
-    fs = flow_rows('KR_FOREIGN_SELL', '외국인 순매도', '-')
-    ib = flow_rows('KR_INST_BUY',     '기관 순매수',   '+')
-    is_ = flow_rows('KR_INST_SELL',   '기관 순매도',   '-')
+    fb  = flow_rows('KR_FOREIGN_BUY',  '외국인 순매수', '+')
+    fs  = flow_rows('KR_FOREIGN_SELL', '외국인 순매도', '-')
+    ib  = flow_rows('KR_INST_BUY',     '기관 순매수',   '+')
+    is_ = flow_rows('KR_INST_SELL',    '기관 순매도',   '-')
+    pb  = flow_rows('KR_INDIV_BUY',    '개인 순매수',   '+')
+    ps  = flow_rows('KR_INDIV_SELL',   '개인 순매도',   '-')
 
-    if any([fb, fs, ib, is_]):
-        parts.append("\n### 📊 한국 시장 수급동향")
+    if any([fb, fs, ib, is_, pb, ps]):
+        parts.append("\n### 📊 한국 시장 수급동향 (당일)")
         hdr = ["| # | 종목 | 코드 | 금액 |", "|---|---|---|---:|"]
         if fb:
             parts += ["\n**🌏 외국인 순매수 TOP5**", *hdr, *fb]
@@ -161,6 +163,10 @@ def build_body(d: dict) -> str:
             parts += ["\n**🏛️ 기관 순매수 TOP5**", *hdr, *ib]
         if is_:
             parts += ["\n**🏛️ 기관 순매도 TOP5**", *hdr, *is_]
+        if pb:
+            parts += ["\n**👤 개인 순매수 TOP5**", *hdr, *pb]
+        if ps:
+            parts += ["\n**👤 개인 순매도 TOP5**", *hdr, *ps]
 
     # 글로벌 기관 동향
     inst_count = int(g(d, 'INST_COUNT') or 0)

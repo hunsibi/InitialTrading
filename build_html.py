@@ -295,13 +295,15 @@ inst_port_table = inst_portfolio_table()
 
 
 def kr_investor_flow_table():
-    """한국 외국인/기관 종목별 순매수/매도 TOP5 테이블 (2×2 그리드)"""
+    """한국 외국인/기관/개인 종목별 순매수/매도 TOP5 테이블 (3×2 그리드)"""
     fb  = int(g('KR_FOREIGN_BUY_COUNT')  or 0)
     fs  = int(g('KR_FOREIGN_SELL_COUNT') or 0)
     ib  = int(g('KR_INST_BUY_COUNT')     or 0)
     is_ = int(g('KR_INST_SELL_COUNT')    or 0)
+    pb  = int(g('KR_INDIV_BUY_COUNT')    or 0)
+    ps  = int(g('KR_INDIV_SELL_COUNT')   or 0)
 
-    if fb == 0 and fs == 0 and ib == 0 and is_ == 0:
+    if fb == 0 and fs == 0 and ib == 0 and is_ == 0 and pb == 0 and ps == 0:
         return ('<p style="color:#aaa;text-align:center;padding:24px">'
                 '매매 데이터 없음 — KRX_ID/KRX_PW 환경변수 미설정</p>')
 
@@ -347,13 +349,15 @@ def kr_investor_flow_table():
         make_block('🌏 외국인 순매수 TOP5 📈', '#c0392b', 'KR_FOREIGN_BUY_',  fb,  True)  +
         make_block('🌏 외국인 순매도 TOP5 📉', '#2471a3', 'KR_FOREIGN_SELL_', fs,  False) +
         make_block('🏦 기관 순매수 TOP5 📈',   '#c0392b', 'KR_INST_BUY_',     ib,  True)  +
-        make_block('🏦 기관 순매도 TOP5 📉',   '#2471a3', 'KR_INST_SELL_',    is_, False)
+        make_block('🏦 기관 순매도 TOP5 📉',   '#2471a3', 'KR_INST_SELL_',    is_, False) +
+        make_block('👤 개인 순매수 TOP5 📈',   '#c0392b', 'KR_INDIV_BUY_',    pb,  True)  +
+        make_block('👤 개인 순매도 TOP5 📉',   '#2471a3', 'KR_INDIV_SELL_',   ps,  False)
     )
 
     return f'''<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
   {blocks}
 </div>
-<p style="font-size:11px;color:#888;margin-top:6px">KRX 공식 데이터 기준 · 주간 순매수/매도 거래대금</p>'''
+<p style="font-size:11px;color:#888;margin-top:6px">KRX 공식 데이터 기준 · 당일 순매수/매도 거래대금</p>'''
 
 
 def inst_changes_table():

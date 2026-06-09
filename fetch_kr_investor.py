@@ -24,14 +24,14 @@ def get_db():
     return MongoClient(MONGO_URI)[DB_NAME]
 
 
-def _get_week_range():
-    """직전 주 월요일 ~ 금요일 반환 (완성된 주간 데이터 기준)."""
-    today        = datetime.now()
-    this_monday  = today - timedelta(days=today.weekday())
-    prev_friday  = this_monday - timedelta(days=3)   # 직전 주 금요일
-    prev_monday  = prev_friday  - timedelta(days=4)  # 직전 주 월요일
-    print(f"  수급 조회 기간: {prev_monday.strftime('%Y-%m-%d')} ~ {prev_friday.strftime('%Y-%m-%d')} (직전 주)")
-    return prev_monday.strftime('%Y%m%d'), prev_friday.strftime('%Y%m%d')
+def _get_today_range():
+    """당일 날짜 반환 (장 마감 후 실행 기준, 주말이면 직전 금요일)."""
+    today = datetime.now()
+    if today.weekday() >= 5:                          # 토(5)/일(6) → 직전 금요일
+        today = today - timedelta(days=today.weekday() - 4)
+    today_str = today.strftime('%Y%m%d')
+    print(f"  수급 조회 기간: {today.strftime('%Y-%m-%d')} (당일)")
+    return today_str, today_str
 
 
 def _load_krx_credentials() -> tuple:
@@ -67,7 +67,7 @@ def _try_pykrx(fromdate: str, todate: str) -> dict:
 
     result = {}
 
-    for investor_key, label in [('외국인', '외국인'), ('기관합계', '기관')]:
+    for investor_key, label in [('외국인', '외국인'), ('기관합계', '기관'), ('개인', '개인')]:
         frames = []
         for market in ['KOSPI', 'KOSDAQ']:
             try:
@@ -140,7 +140,7 @@ def run():
     print("  [1-c/4] 한국 외국인/기관 종목별 매매 동향 수집")
     print("="*50)
 
-    fromdate, todate = _get_week_range()
+    fromdate, todate = _get_today_range()
     print(f"  기간: {fromdate} ~ {todate}")
 
     flows = fetch_market_flows(fromdate, todate)
@@ -158,13 +158,16 @@ def run():
             '외국인_매도': flows.get('외국인_매도', []),
             '기관_매수':   flows.get('기관_매수',   []),
             '기관_매도':   flows.get('기관_매도',   []),
+            '개인_매수':   flows.get('개인_매수',   []),
+            '개인_매도':   flows.get('개인_매도',   []),
         }
         db = get_db()
         db['kr_investor_flows'].create_index('date')
         db['kr_investor_flows'].update_one({'date': todate}, {'$set': doc}, upsert=True)
         print(f"  저장 완료 — "
               f"외국인 매수 {len(doc['외국인_매수'])}종목 / 매도 {len(doc['외국인_매도'])}종목 / "
-              f"기관 매수 {len(doc['기관_매수'])}종목 / 매도 {len(doc['기관_매도'])}종목")
+              f"기관 매수 {len(doc['기관_매수'])}종목 / 매도 {len(doc['기관_매도'])}종목 / "
+              f"개인 매수 {len(doc['개인_매수'])}종목 / 매도 {len(doc['개인_매도'])}종목")
     except Exception as e:
         print(f"  [경고] MongoDB 저장 실패: {e}")
 

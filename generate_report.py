@@ -564,6 +564,8 @@ try:
     f_sell   = kr_flows.get('외국인_매도', [])
     i_buy    = kr_flows.get('기관_매수',   [])
     i_sell   = kr_flows.get('기관_매도',   [])
+    p_buy    = kr_flows.get('개인_매수',   [])
+    p_sell   = kr_flows.get('개인_매도',   [])
 except Exception as _e:
     print(f"  [경고] 한국 매매동향 로드 실패: {_e}")
     f_buy = []; f_sell = []; i_buy = []; i_sell = []
@@ -595,6 +597,14 @@ with open(out_path, 'a', encoding='utf-8') as f:
     f.write(f'KR_INST_SELL_COUNT={len(i_sell)}\n')
     for _i, _it in enumerate(i_sell):
         f.write(f'KR_INST_SELL_{_i}={_it["name"]}|{_it["code"]}|{int(_it["net_b"])}\n')
+
+    # 개인 순매수/순매도 종목 TOP5
+    f.write(f'KR_INDIV_BUY_COUNT={len(p_buy)}\n')
+    for _i, _it in enumerate(p_buy):
+        f.write(f'KR_INDIV_BUY_{_i}={_it["name"]}|{_it["code"]}|{int(_it["net_b"])}\n')
+    f.write(f'KR_INDIV_SELL_COUNT={len(p_sell)}\n')
+    for _i, _it in enumerate(p_sell):
+        f.write(f'KR_INDIV_SELL_{_i}={_it["name"]}|{_it["code"]}|{int(_it["net_b"])}\n')
 
     # 글로벌 기관 투자 변화
     f.write(f'INST_CHNG_COUNT={len(inst_changes)}\n')

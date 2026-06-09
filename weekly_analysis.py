@@ -580,6 +580,8 @@ def load_kr_investor_flows() -> dict:
             '외국인_매도': doc.get('외국인_매도', []),
             '기관_매수':   doc.get('기관_매수',   []),
             '기관_매도':   doc.get('기관_매도',   []),
+            '개인_매수':   doc.get('개인_매수',   []),
+            '개인_매도':   doc.get('개인_매도',   []),
         }
     except Exception as e:
         print(f"  [경고] kr_investor_flows 로드 실패: {e}")
