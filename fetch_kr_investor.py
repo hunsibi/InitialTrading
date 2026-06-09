@@ -25,9 +25,13 @@ def get_db():
 
 
 def _get_week_range():
-    today  = datetime.now()
-    monday = today - timedelta(days=today.weekday())
-    return monday.strftime('%Y%m%d'), today.strftime('%Y%m%d')
+    """직전 주 월요일 ~ 금요일 반환 (완성된 주간 데이터 기준)."""
+    today        = datetime.now()
+    this_monday  = today - timedelta(days=today.weekday())
+    prev_friday  = this_monday - timedelta(days=3)   # 직전 주 금요일
+    prev_monday  = prev_friday  - timedelta(days=4)  # 직전 주 월요일
+    print(f"  수급 조회 기간: {prev_monday.strftime('%Y-%m-%d')} ~ {prev_friday.strftime('%Y-%m-%d')} (직전 주)")
+    return prev_monday.strftime('%Y%m%d'), prev_friday.strftime('%Y%m%d')
 
 
 def _load_krx_credentials() -> tuple:
@@ -89,16 +93,26 @@ def _try_pykrx(fromdate: str, todate: str) -> dict:
         combined[net_col] = pd.to_numeric(combined[net_col], errors='coerce').fillna(0)
         combined = combined.sort_values(net_col, ascending=False)
 
+        # pykrx 단위 자동 감지: 최대 절댓값이 1e8(1억) 초과 → 원 단위 → 억원 변환 필요
+        max_abs = combined[net_col].abs().max()
+        if max_abs > 1e8:
+            divisor = 1e8    # 원 → 억원
+            unit_str = '원→억원 변환'
+        else:
+            divisor = 1      # 이미 억원
+            unit_str = '억원 (변환 없음)'
+        print(f"  [pykrx/{label}] 단위 감지: {unit_str} (최대값={max_abs:,.0f})")
+
         def make_list(sub_df):
             rows = []
             for code, row in sub_df.iterrows():
                 code = str(code).zfill(6)
-                net  = int(row[net_col])
+                net_raw = int(row[net_col])
                 rows.append({
-                    'code':  code,
-                    'name':  code_to_name.get(code, code),
-                    'net_krw': net,
-                    'net_b': round(abs(net) / 1e8, 0),  # 억원
+                    'code':    code,
+                    'name':    code_to_name.get(code, code),
+                    'net_krw': net_raw,
+                    'net_b':   round(abs(net_raw) / divisor, 0),  # 억원
                 })
             return rows
 

@@ -120,10 +120,11 @@ def run_update():
     latest_dt = get_latest_date()
     end_date  = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
+    # 종목 마스터(시총) 항상 최신화 — 시총 순위 정확도 유지
+    refresh_stocks()
+
     if latest_dt is None:
-        # DB 비어있음 (GitHub Actions 첫 실행 등) → 최근 1년치 전체 수집
         print("  ▸ DB 비어있음 — 초기 전체 수집 시작 (최근 90일)")
-        refresh_stocks()
         start_date = end_date - timedelta(days=90)
     else:
         start_date = latest_dt + timedelta(days=1)
@@ -137,10 +138,8 @@ def run_update():
         return
     print(f"  ▸ 예상 영업일  : {len(bdays)}일\n")
 
-    # 종목 리스트 (stocks가 비어있으면 refresh)
+    # 종목 리스트
     db = get_db()
-    if db['stocks'].count_documents({}) == 0:
-        refresh_stocks()
     tickers = [d['code'] for d in db['stocks'].find({}, {'code':1,'_id':0})]
     print(f"  ▸ 대상 종목 수  : {len(tickers):,}개")
 
