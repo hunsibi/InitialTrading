@@ -101,12 +101,13 @@ jobs:
           cp "$REPORT" "reports/report_${REPORT_DATE}.html"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin master
           git add "reports/report_${REPORT_DATE}.html"
           if git diff --staged --quiet; then
             echo "  변경 없음 — 이미 커밋됨"
           else
+            # 커밋 먼저 → pull(rebase) → push (unstaged changes 충돌 방지)
             git commit -m "data: ${REPORT_DATE} 주간 분석 리포트"
+            git pull --rebase origin master
             git push origin HEAD:master
             echo "  커밋 및 푸시 완료: reports/report_${REPORT_DATE}.html"
           fi
