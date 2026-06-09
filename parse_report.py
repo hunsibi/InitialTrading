@@ -51,7 +51,8 @@ def parse_stock(pfx, i):
         f"{g(f'{pfx}{i}_RSI')}|{g(f'{pfx}{i}_VOLR')}|"
         f"{fi(g(f'{pfx}{i}_ENTRY'))}|{fi(g(f'{pfx}{i}_STOP'))}|{g(f'{pfx}{i}_STOP_PCT')}|"
         f"{fi(g(f'{pfx}{i}_T1'))}|{g(f'{pfx}{i}_T1_PCT')}|"
-        f"{fi(g(f'{pfx}{i}_T2'))}|{g(f'{pfx}{i}_T2_PCT')}|{';;'.join(reasons)}"
+        f"{fi(g(f'{pfx}{i}_T2'))}|{g(f'{pfx}{i}_T2_PCT')}|{';;'.join(reasons)}|"
+        f"{g(f'{pfx}{i}_WEIGHT')}"
     )
 
 # 안정 대장주 모델 TOP5

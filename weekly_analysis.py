@@ -700,6 +700,48 @@ def calc_trade_levels(row) -> dict:
 
 
 # -------------------------------------------------------------------------
+# 7-b. 포트폴리오 최적 비중 (PyPortfolioOpt)
+# -------------------------------------------------------------------------
+
+def calc_portfolio_weights(df_prices: pd.DataFrame, codes: list) -> dict:
+    """샤프 비율 최대화 기반 최적 비중 계산 (PyPortfolioOpt 미설치 시 균등 배분 반환)"""
+    if not codes:
+        return {}
+    n = len(codes)
+    equal = {c: round(100.0 / n, 1) for c in codes}
+
+    try:
+        from pypfopt import EfficientFrontier, risk_models
+        from pypfopt import expected_returns as er
+    except ImportError:
+        return equal
+
+    try:
+        sub   = df_prices[df_prices['Code'].isin(codes)].copy()
+        pivot = sub.pivot_table(index='Date', columns='Code', values='Close')
+        # 80% 이상 데이터 있는 컬럼만 유지
+        pivot = pivot.dropna(axis=1, thresh=max(1, int(len(pivot) * 0.8)))
+        valid = list(pivot.columns)
+
+        if len(valid) < 2 or len(pivot) < 30:
+            return equal
+
+        mu = er.mean_historical_return(pivot, frequency=252)
+        S  = risk_models.CovarianceShrinkage(pivot, frequency=252).ledoit_wolf()
+
+        ef = EfficientFrontier(mu, S, weight_bounds=(0.05, 0.60))
+        ef.max_sharpe(risk_free_rate=0.03)
+        w  = ef.clean_weights()
+
+        result = {c: round(w.get(c, 0.0) * 100, 1) for c in codes}
+        print(f"  [비중] {', '.join(f'{c}:{v}%' for c,v in result.items())}")
+        return result
+    except Exception as e:
+        print(f"  [비중] 최적화 실패({e}) → 균등 배분")
+        return equal
+
+
+# -------------------------------------------------------------------------
 # 6. 시장 요약
 # -------------------------------------------------------------------------
 

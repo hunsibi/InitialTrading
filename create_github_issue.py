@@ -88,16 +88,18 @@ def build_body(d: dict) -> str:
             name_s, code, sector = p[0], p[1], p[3]
             r1w, r12w = p[5], p[6]
             entry, t1, t1p, stop, stop_pct = p[9], p[12], p[13], p[10], p[11]
+            weight = p[17] if len(p) > 17 else ''
+            weight_cell = f' {weight}%' if weight else ' -'
             rows.append(
                 f"| {i+1} | **{name_s}** `{code}` | {sector} | {r1w} | {r12w} |"
-                f" {entry}원 | {t1}원({t1p}) | {stop}원({stop_pct}) |"
+                f" {entry}원 | {t1}원({t1p}) | {stop}원({stop_pct}) |{weight_cell} |"
             )
         if not rows:
             return []
         return [
             f"\n### {icon} {title}",
-            "| # | 종목(코드) | 업종 | 주간 | 12주 | 매수가 | 목표① | 손절 |",
-            "|---|---|---|---:|---:|---:|---:|---:|",
+            "| # | 종목(코드) | 업종 | 주간 | 12주 | 매수가 | 목표① | 손절 | 비중 |",
+            "|---|---|---|---:|---:|---:|---:|---:|---:|",
             *rows,
         ]
 

@@ -96,6 +96,7 @@ def stock_card(pfx, i, colors, labels):
     t2      = fi(f'{pfx}{i}_T2')
     t2p     = g(f'{pfx}{i}_T2_PCT')
     caution = g(f'{pfx}{i}_CAUTION')
+    weight  = g(f'{pfx}{i}_WEIGHT')
     reasons = g(f'{pfx}{i}_REASONS').split('|') if g(f'{pfx}{i}_REASONS') else []
 
     try:    rsi = float(rsi_val)
@@ -150,6 +151,7 @@ def stock_card(pfx, i, colors, labels):
           <div class="chip"><span class="cl">MA20</span><span>{ma20}원</span></div>
           <div class="chip"><span class="cl">MA60</span><span>{ma60}원</span></div>
           <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">{atr_int:,}원</span></div>
+          {f'<div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">{weight}%</span></div>' if weight else ''}
         </div>
       </div>
     </div>

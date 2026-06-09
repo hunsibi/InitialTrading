@@ -145,6 +145,18 @@ levels_stable = collect_levels(top5_stable)
 levels_mom    = collect_levels(top5_mom)
 levels_etf    = collect_levels(top5_etf, sector_fn=wa.infer_etf_theme) if etf_ok and not top5_etf.empty else []
 
+# -- 포트폴리오 최적 비중 (PyPortfolioOpt) ---------------------------------
+print("\n=== [포트폴리오 최적 비중 계산] ===")
+try:
+    stable_w = wa.calc_portfolio_weights(prices, [lv['Code'] for lv in levels_stable])
+    mom_w    = wa.calc_portfolio_weights(prices, [lv['Code'] for lv in levels_mom])
+    etf_w    = wa.calc_portfolio_weights(
+                    etf_prices, [lv['Code'] for lv in levels_etf]
+               ) if etf_ok and levels_etf else {}
+except Exception as _we:
+    print(f"  [경고] 비중 계산 실패: {_we}")
+    stable_w = mom_w = etf_w = {}
+
 
 # -- 선정 이유: 안정 대장주 모델 -------------------------------------------
 def gen_reasons_stable(lv: dict) -> list:
@@ -392,6 +404,7 @@ with open(out_path, 'w', encoding='utf-8') as f:
         f.write(f'S{i}_T1_PCT={lv["T1_Pct"]}\n')
         f.write(f'S{i}_T2={lv["Target2"]}\n')
         f.write(f'S{i}_T2_PCT={lv["T2_Pct"]}\n')
+        f.write(f'S{i}_WEIGHT={stable_w.get(lv["Code"], round(100/max(1,len(levels_stable)),1))}\n')
         f.write(f'S{i}_REASONS={"|".join(reasons)}\n')
         f.write(f'S{i}_CAUTION={caution}\n')
 
@@ -421,6 +434,7 @@ with open(out_path, 'w', encoding='utf-8') as f:
         f.write(f'M{i}_T1_PCT={lv["T1_Pct"]}\n')
         f.write(f'M{i}_T2={lv["Target2"]}\n')
         f.write(f'M{i}_T2_PCT={lv["T2_Pct"]}\n')
+        f.write(f'M{i}_WEIGHT={mom_w.get(lv["Code"], round(100/max(1,len(levels_mom)),1))}\n')
         f.write(f'M{i}_REASONS={"|".join(reasons)}\n')
         f.write(f'M{i}_CAUTION={caution}\n')
 
@@ -450,6 +464,7 @@ with open(out_path, 'w', encoding='utf-8') as f:
         f.write(f'E{i}_T1_PCT={lv["T1_Pct"]}\n')
         f.write(f'E{i}_T2={lv["Target2"]}\n')
         f.write(f'E{i}_T2_PCT={lv["T2_Pct"]}\n')
+        f.write(f'E{i}_WEIGHT={etf_w.get(lv["Code"], round(100/max(1,len(levels_etf)),1))}\n')
         f.write(f'E{i}_REASONS={"|".join(reasons)}\n')
         f.write(f'E{i}_CAUTION={caution}\n')
 
@@ -468,6 +483,13 @@ except Exception as e:
 inst_docs = wa.load_institutional_docs()
 levels_inst = collect_levels(top5_inst) if inst_ok and not top5_inst.empty else []
 inst_weights = wa.load_institutional_sectors() if inst_ok else {}
+
+# 기관연동 모델 비중
+try:
+    inst_w = wa.calc_portfolio_weights(prices, [lv['Code'] for lv in levels_inst]) if levels_inst else {}
+except Exception as _iwe:
+    print(f"  [경고] 기관연동 비중 실패: {_iwe}")
+    inst_w = {}
 
 
 def gen_reasons_institutional(lv: dict, weights: dict) -> list:
@@ -551,6 +573,7 @@ with open(out_path, 'a', encoding='utf-8') as f:
             f.write(f'I{i}_T1_PCT={lv["T1_Pct"]}\n')
             f.write(f'I{i}_T2={lv["Target2"]}\n')
             f.write(f'I{i}_T2_PCT={lv["T2_Pct"]}\n')
+            f.write(f'I{i}_WEIGHT={inst_w.get(lv["Code"], round(100/max(1,len(levels_inst)),1))}\n')
             f.write(f'I{i}_REASONS={"|".join(reasons)}\n')
             f.write(f'I{i}_CAUTION={caution}\n')
 

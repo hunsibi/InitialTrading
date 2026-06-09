@@ -8,6 +8,14 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 
+# edgartools (설치된 경우 우선 사용, 없으면 수동 파싱 fallback)
+try:
+    from edgar import Company as _EdgarCompany, set_identity as _edgar_set_id
+    _edgar_set_id("InitialTrading hs77.jung@gmail.com")
+    _EDGAR_TOOLS = True
+except Exception:
+    _EDGAR_TOOLS = False
+
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 MONGO_URI  = 'mongodb://localhost:27017'
 DB_NAME    = 'trading'
@@ -207,13 +215,85 @@ def aggregate_sectors(holdings: list) -> dict:
             for k, v in sorted(sv.items(), key=lambda x: -x[1])}
 
 
+def _fetch_via_edgartools(name: str, cik: str):
+    """edgartools로 13F 파싱 (주요 경로)"""
+    try:
+        company = _EdgarCompany(name, cik)
+        filings = company.get_filings(form="13F-HR")
+        if not filings or len(filings) == 0:
+            return None
+        latest = filings[0]
+        filing_date = str(getattr(latest, 'filing_date', '') or '')
+        period      = str(getattr(latest, 'period_of_report', '') or '')
+        accession   = str(getattr(latest, 'accession_no', '') or '')
+        print(f"  [{name}] {filing_date} (기준: {period})  [edgartools]")
+
+        thirteenf = latest.obj()
+        if thirteenf is None:
+            return None
+        df = getattr(thirteenf, 'holdings', None)
+        if df is None or len(df) == 0:
+            return None
+
+        # 컬럼명 탐지 (버전별 차이 대응)
+        cols = {c.lower(): c for c in df.columns}
+        nm_col  = cols.get('nameofissuer', cols.get('name'))
+        val_col = cols.get('value')
+        shr_col = cols.get('sshprnamt', cols.get('shares'))
+        cs_col  = cols.get('cusip')
+
+        holdings = []
+        for _, row in df.iterrows():
+            nm  = str(row[nm_col]  if nm_col  else '').strip()
+            val = 0
+            if val_col:
+                try: val = int(float(str(row[val_col] or 0)))
+                except: pass
+            shr = 0
+            if shr_col:
+                try: shr = int(float(str(row[shr_col] or 0)))
+                except: pass
+            cs = str(row[cs_col] if cs_col else '').strip()
+            if nm and val > 0:
+                holdings.append({'name': nm, 'cusip': cs, 'value': val, 'shares': shr})
+
+        if not holdings:
+            return None
+
+        sector_weights = aggregate_sectors(holdings)
+        top20 = sorted(holdings, key=lambda x: -x['value'])[:20]
+        return {
+            'cik':                  cik,
+            'name':                 name,
+            'fetched_at':           datetime.utcnow(),
+            'filing_date':          filing_date,
+            'period_of_report':     period,
+            'accession_no':         accession,
+            'top_holdings':         top20,
+            'sector_weights':       sector_weights,
+            'total_holdings_count': len(holdings),
+            'total_value_k':        sum(h['value'] for h in holdings),
+        }
+    except Exception as e:
+        print(f"  [{name}] edgartools 오류: {e}")
+        return None
+
+
 def fetch_one_fund(name: str, cik: str):
     print(f"  [{name}] 수집 중...")
+
+    if _EDGAR_TOOLS:
+        doc = _fetch_via_edgartools(name, cik)
+        if doc:
+            return doc
+        print(f"  [{name}] edgartools 실패 → 수동 파싱 시도")
+
+    # 수동 파싱 (fallback)
     acc_info = fetch_latest_13f_accession(cik)
     if not acc_info:
         print(f"  [{name}] 13F 파일링 없음")
         return None
-    print(f"  [{name}] {acc_info['filing_date']} (기준: {acc_info['period']})")
+    print(f"  [{name}] {acc_info['filing_date']} (기준: {acc_info['period']})  [수동]")
     holdings = fetch_holdings(cik, acc_info)
     if not holdings:
         print(f"  [{name}] 보유 내역 없음")
