@@ -120,8 +120,12 @@ def run_update():
     latest_dt = get_latest_date()
     end_date  = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
-    # 종목 마스터(시총) 항상 최신화 — 시총 순위 정확도 유지
-    refresh_stocks()
+    # 종목 마스터(시총) 최신화 — KRX 접근 불가(해외 IP 차단) 시 기존 데이터로 계속 진행
+    try:
+        refresh_stocks()
+    except Exception as _re:
+        print(f"  [경고] 종목 마스터 갱신 실패 (KRX 접근 불가): {_re}")
+        print("  → 기존 stocks 컬렉션 데이터로 분석 계속 진행합니다.")
 
     if latest_dt is None:
         print("  ▸ DB 비어있음 — 초기 전체 수집 시작 (최근 90일)")
