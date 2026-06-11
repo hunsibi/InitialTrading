@@ -37,8 +37,17 @@ try:
 except Exception as e:
     print(f"  [경고] US 시장 수집 실패: {e}")
     us_mkt = {}
-top5_stable = scored_stable.head(5)
-top5_mom    = scored_mom.head(5)
+
+# 시장 레짐 판정 — 하락장이면 추천 수 5→3 축소
+print("\n=== [시장 레짐 판정] ===")
+import market_regime as mr
+regime = mr.get_regime()
+TOP_N  = 3 if regime['regime'] == '하락' else 5
+print(f"  레짐: {regime['regime']} / 추천 수: {TOP_N} / {regime['advice']}")
+
+# 안정 모델: 섹터당 최대 2개 다양성 선발 (쏠림 방지) / 모멘텀: 순수 점수순 유지
+top5_stable = wa.select_diverse_top(scored_stable, n=TOP_N, max_per_sector=2)
+top5_mom    = scored_mom.head(TOP_N)
 date = prices['Date'].max().strftime('%Y-%m-%d')
 
 # 한국 시총 TOP5
@@ -119,14 +128,32 @@ except Exception as _e:
 
 
 # -- 매매 레벨 수집 함수 ---------------------------------------------------
+_PORT_CODES = set(wa.MY_PORTFOLIO_KR.values())   # 현재 보유 종목 (중복 표시용)
+RISK_BUDGET = 100_000                            # 1,000만원 계좌 · 1% 리스크 기준
+
+
 def collect_levels(top5: pd.DataFrame, sector_fn=None) -> list:
+    def _num(v, nd=2):
+        try:
+            f = float(v)
+            return round(f, nd) if f > 0 else ''
+        except (TypeError, ValueError):
+            return ''
     levels = []
     for _, row in top5.iterrows():
         tl = wa.calc_trade_levels(row)
         tl['Name']   = str(row.get('Name', row['Code']))
         tl['Code']   = row['Code']
         tl['Market'] = str(row.get('Market', ''))
-        tl['Sector'] = sector_fn(tl['Name']) if sector_fn else wa.infer_sector(tl['Name'])
+        tl['Sector'] = sector_fn(tl['Name']) if sector_fn \
+                       else wa.classify_sector(tl['Name'], row.get('Industry'))
+        tl['PER']    = _num(row.get('PER'))
+        tl['PBR']    = _num(row.get('PBR'))
+        tl['DIV']    = _num(row.get('DIV'))
+        tl['Held']   = 1 if str(tl['Code']).zfill(6) in _PORT_CODES else 0
+        # 포지션 사이징: 1주당 리스크(매수가-손절가) 대비 리스크 예산으로 수량 산출
+        risk_per_share = max(tl['Entry'] - tl['StopLoss'], tl['Entry'] * 0.01)
+        tl['Qty']    = int(RISK_BUDGET // risk_per_share) if risk_per_share > 0 else 0
         tl['Close']  = int(row['Close'])
         tl['RSI']    = round(row['RSI'], 1)
         tl['MACD']   = round(row['MACD_Hist'], 1)
@@ -156,6 +183,34 @@ try:
 except Exception as _we:
     print(f"  [경고] 비중 계산 실패: {_we}")
     stable_w = mom_w = etf_w = {}
+
+
+# -- TOP5 종목 간 평균 상관관계 (분산 점검) ----------------------------------
+def avg_pairwise_corr(price_df, codes, days=60):
+    """최근 days일 일별 수익률의 종목 쌍 평균 상관계수 (높으면 쏠림)."""
+    try:
+        import numpy as np
+        if len(codes) < 2:
+            return None
+        sub  = price_df[price_df['Code'].isin(codes)]
+        piv  = sub.pivot_table(index='Date', columns='Code', values='Close').tail(days)
+        rets = piv.pct_change().dropna(how='all')
+        if rets.shape[1] < 2 or len(rets) < 20:
+            return None
+        c    = rets.corr().values
+        vals = c[np.triu_indices_from(c, k=1)]
+        vals = vals[~pd.isna(vals)]
+        return round(float(vals.mean()), 2) if len(vals) else None
+    except Exception:
+        return None
+
+
+print("\n=== [TOP5 상관관계 점검] ===")
+corr_s = avg_pairwise_corr(prices, [lv['Code'] for lv in levels_stable])
+corr_m = avg_pairwise_corr(prices, [lv['Code'] for lv in levels_mom])
+corr_e = avg_pairwise_corr(etf_prices, [lv['Code'] for lv in levels_etf]) \
+         if etf_ok and levels_etf else None
+print(f"  안정 {corr_s} / 모멘텀 {corr_m} / ETF {corr_e}")
 
 
 # -- 선정 이유: 안정 대장주 모델 -------------------------------------------
@@ -352,6 +407,21 @@ with open(out_path, 'w', encoding='utf-8') as f:
     f.write(f'KOSDAQ_RET={mkt["KOSDAQ"]["mean_ret"]}\n')
     f.write(f'KOSDAQ_UP={mkt["KOSDAQ"]["up"]}\n')
     f.write(f'KOSDAQ_DN={mkt["KOSDAQ"]["down"]}\n')
+    # 시장 레짐
+    f.write(f'REGIME={regime["regime"]}\n')
+    f.write(f'REGIME_ADVICE={regime["advice"]}\n')
+    f.write(f'REGIME_TOPN={TOP_N}\n')
+    # TOP5 상관관계
+    if corr_s is not None: f.write(f'S_AVGCORR={corr_s}\n')
+    if corr_m is not None: f.write(f'M_AVGCORR={corr_m}\n')
+    if corr_e is not None: f.write(f'E_AVGCORR={corr_e}\n')
+    if regime.get('available'):
+        f.write(f'REGIME_KOSPI={regime["kospi"]}\n')
+        f.write(f'REGIME_MA60={regime["ma60"]}\n')
+        f.write(f'REGIME_MA200={regime["ma200"]}\n')
+        f.write(f'REGIME_GAP={regime["ma200_gap"]}\n')
+        f.write(f'REGIME_VOL={regime["vol20"]}\n')
+        f.write(f'REGIME_VOLWARN={1 if regime["vol_warn"] else 0}\n')
     # 미국 시장
     sp  = us_mkt.get('SP500',  {})
     nq  = us_mkt.get('NASDAQ', {})
@@ -386,6 +456,9 @@ with open(out_path, 'w', encoding='utf-8') as f:
         f.write(f'S{i}_CODE={lv["Code"]}\n')
         f.write(f'S{i}_MKT={lv["Market"]}\n')
         f.write(f'S{i}_SECTOR={lv["Sector"]}\n')
+        f.write(f'S{i}_PER={lv["PER"]}\n')
+        f.write(f'S{i}_PBR={lv["PBR"]}\n')
+        f.write(f'S{i}_DIV={lv["DIV"]}\n')
         f.write(f'S{i}_SCORE={lv["Score"]}\n')
         f.write(f'S{i}_CLOSE={lv["Close"]}\n')
         f.write(f'S{i}_RSI={lv["RSI"]}\n')
@@ -405,6 +478,8 @@ with open(out_path, 'w', encoding='utf-8') as f:
         f.write(f'S{i}_T2={lv["Target2"]}\n')
         f.write(f'S{i}_T2_PCT={lv["T2_Pct"]}\n')
         f.write(f'S{i}_WEIGHT={stable_w.get(lv["Code"], round(100/max(1,len(levels_stable)),1))}\n')
+        f.write(f'S{i}_HELD={lv["Held"]}\n')
+        f.write(f'S{i}_QTY={lv["Qty"]}\n')
         f.write(f'S{i}_REASONS={"|".join(reasons)}\n')
         f.write(f'S{i}_CAUTION={caution}\n')
 
@@ -416,6 +491,9 @@ with open(out_path, 'w', encoding='utf-8') as f:
         f.write(f'M{i}_CODE={lv["Code"]}\n')
         f.write(f'M{i}_MKT={lv["Market"]}\n')
         f.write(f'M{i}_SECTOR={lv["Sector"]}\n')
+        f.write(f'M{i}_PER={lv["PER"]}\n')
+        f.write(f'M{i}_PBR={lv["PBR"]}\n')
+        f.write(f'M{i}_DIV={lv["DIV"]}\n')
         f.write(f'M{i}_SCORE={lv["Score"]}\n')
         f.write(f'M{i}_CLOSE={lv["Close"]}\n')
         f.write(f'M{i}_RSI={lv["RSI"]}\n')
@@ -435,6 +513,8 @@ with open(out_path, 'w', encoding='utf-8') as f:
         f.write(f'M{i}_T2={lv["Target2"]}\n')
         f.write(f'M{i}_T2_PCT={lv["T2_Pct"]}\n')
         f.write(f'M{i}_WEIGHT={mom_w.get(lv["Code"], round(100/max(1,len(levels_mom)),1))}\n')
+        f.write(f'M{i}_HELD={lv["Held"]}\n')
+        f.write(f'M{i}_QTY={lv["Qty"]}\n')
         f.write(f'M{i}_REASONS={"|".join(reasons)}\n')
         f.write(f'M{i}_CAUTION={caution}\n')
 
@@ -465,6 +545,8 @@ with open(out_path, 'w', encoding='utf-8') as f:
         f.write(f'E{i}_T2={lv["Target2"]}\n')
         f.write(f'E{i}_T2_PCT={lv["T2_Pct"]}\n')
         f.write(f'E{i}_WEIGHT={etf_w.get(lv["Code"], round(100/max(1,len(levels_etf)),1))}\n')
+        f.write(f'E{i}_HELD={lv["Held"]}\n')
+        f.write(f'E{i}_QTY={lv["Qty"]}\n')
         f.write(f'E{i}_REASONS={"|".join(reasons)}\n')
         f.write(f'E{i}_CAUTION={caution}\n')
 
@@ -481,7 +563,7 @@ except Exception as e:
     inst_ok   = False
 
 inst_docs = wa.load_institutional_docs()
-levels_inst = collect_levels(top5_inst) if inst_ok and not top5_inst.empty else []
+levels_inst = collect_levels(top5_inst.head(TOP_N)) if inst_ok and not top5_inst.empty else []
 inst_weights = wa.load_institutional_sectors() if inst_ok else {}
 
 # 기관연동 모델 비중
@@ -527,7 +609,11 @@ def gen_reasons_institutional(lv: dict, weights: dict) -> list:
     return reasons[:5]
 
 
+corr_i = avg_pairwise_corr(prices, [lv['Code'] for lv in levels_inst]) if levels_inst else None
+
 with open(out_path, 'a', encoding='utf-8') as f:
+    if corr_i is not None:
+        f.write(f'I_AVGCORR={corr_i}\n')
     # 글로벌 기관 동향 요약 (INST prefix)
     f.write(f'INST_COUNT={len(inst_docs)}\n')
     for j, idoc in enumerate(inst_docs[:11]):
@@ -555,6 +641,9 @@ with open(out_path, 'a', encoding='utf-8') as f:
             f.write(f'I{i}_CODE={lv["Code"]}\n')
             f.write(f'I{i}_MKT={lv["Market"]}\n')
             f.write(f'I{i}_SECTOR={lv["Sector"]}\n')
+            f.write(f'I{i}_PER={lv["PER"]}\n')
+            f.write(f'I{i}_PBR={lv["PBR"]}\n')
+            f.write(f'I{i}_DIV={lv["DIV"]}\n')
             f.write(f'I{i}_SCORE={lv["Score"]}\n')
             f.write(f'I{i}_CLOSE={lv["Close"]}\n')
             f.write(f'I{i}_RSI={lv["RSI"]}\n')
@@ -574,6 +663,8 @@ with open(out_path, 'a', encoding='utf-8') as f:
             f.write(f'I{i}_T2={lv["Target2"]}\n')
             f.write(f'I{i}_T2_PCT={lv["T2_Pct"]}\n')
             f.write(f'I{i}_WEIGHT={inst_w.get(lv["Code"], round(100/max(1,len(levels_inst)),1))}\n')
+            f.write(f'I{i}_HELD={lv["Held"]}\n')
+            f.write(f'I{i}_QTY={lv["Qty"]}\n')
             f.write(f'I{i}_REASONS={"|".join(reasons)}\n')
             f.write(f'I{i}_CAUTION={caution}\n')
 
@@ -641,3 +732,23 @@ with open(out_path, 'a', encoding='utf-8') as f:
             f.write(f'INST_CHNG_{_i}_S{_j}_DIR={"▲증가" if _delta > 0 else "▼감소"}\n')
 
 print(f'  [매매동향] 외국인 매수 {len(f_buy)} / 매도 {len(f_sell)} / 기관 매수 {len(i_buy)} / 매도 {len(i_sell)} / 기관변화 {len(inst_changes)}건')
+
+# -- 추천 이력 저장 + 과거 추천 성과 평가 ------------------------------------
+print("\n=== [추천 성과 추적] ===")
+try:
+    import track_performance as tp
+    tp.save_recommendations(date, 'S', levels_stable)
+    tp.save_recommendations(date, 'M', levels_mom)
+    tp.save_recommendations(date, 'E', levels_etf)
+    tp.save_recommendations(date, 'I', levels_inst)
+    tp.evaluate_all()
+    perf_kv = tp.get_performance_kv(current_date=date)
+    if perf_kv:
+        with open(out_path, 'a', encoding='utf-8') as f:
+            for line in perf_kv:
+                f.write(line + '\n')
+        print(f"  [성과] 요약 {len(perf_kv)}개 키 기록 완료")
+    else:
+        print("  [성과] 아직 평가 가능한 과거 추천 없음 (다음 주부터 누적)")
+except Exception as _pe:
+    print(f"  [경고] 성과 추적 실패: {_pe}")

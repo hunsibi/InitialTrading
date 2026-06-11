@@ -121,12 +121,31 @@ def stock_card(pfx, i, colors, labels):
     reason_li    = ''.join(f'<li>{r}</li>' for r in reasons)
     caution_html = f'<div class="caution">⚠ {caution}</div>' if caution else ''
 
+    # 펀더멘털 칩 (PER/PBR/배당 — 값이 있을 때만)
+    fund_chips = ''
+    per_v = g(f'{pfx}{i}_PER'); pbr_v = g(f'{pfx}{i}_PBR'); div_v = g(f'{pfx}{i}_DIV')
+    if per_v:
+        fund_chips += f'<div class="chip"><span class="cl">PER</span><span style="font-weight:700">{per_v}배</span></div>'
+    if pbr_v:
+        fund_chips += f'<div class="chip"><span class="cl">PBR</span><span style="font-weight:700">{pbr_v}배</span></div>'
+    if div_v:
+        fund_chips += f'<div class="chip"><span class="cl">배당수익률</span><span style="color:#16a085;font-weight:700">{div_v}%</span></div>'
+
+    # 권장 수량 (1,000만원 계좌 1% 리스크 기준) + 보유중 배지
+    qty_v = g(f'{pfx}{i}_QTY')
+    if qty_v:
+        fund_chips += (f'<div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span>'
+                       f'<span style="color:#8e44ad;font-weight:700">{qty_v}주</span></div>')
+    held_badge = (' <span style="background:#8e44ad;color:#fff;border-radius:4px;'
+                  'padding:1px 6px;font-size:10px;font-weight:700">📌 보유중</span>') \
+                 if g(f'{pfx}{i}_HELD') == '1' else ''
+
     return f'''
 <div class="card">
   <div class="card-top">
     <div class="rank-dot" style="background:{rc}">{rl}</div>
     <div class="card-title-wrap">
-      <div class="card-name">{name}</div>
+      <div class="card-name">{name}{held_badge}</div>
       <div class="card-meta">{code} &middot; {mkt} &middot; <span class="sector-tag">{sec}</span></div>
     </div>
     <div class="card-price">
@@ -151,6 +170,7 @@ def stock_card(pfx, i, colors, labels):
           <div class="chip"><span class="cl">MA20</span><span>{ma20}원</span></div>
           <div class="chip"><span class="cl">MA60</span><span>{ma60}원</span></div>
           <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">{atr_int:,}원</span></div>
+          {fund_chips}
           {f'<div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">{weight}%</span></div>' if weight else ''}
         </div>
       </div>
@@ -503,6 +523,139 @@ def market_cap_tables():
 
 kr_us_cap_html = market_cap_tables()
 
+
+def performance_section():
+    """과거 추천 성과 섹션 (track_performance.py 집계 PERF_* 키 기반)"""
+    weeks = g('PERF_WEEKS')
+    if not weeks:
+        return ''
+    MODELS = [('S', '🟢 안정 대장주', '#16a085'), ('M', '🔴 단기 모멘텀', '#e65100'),
+              ('E', '🔵 ETF 추천', '#1565c0'),   ('I', '🟣 기관연동', '#7b1fa2')]
+    HIT_LABEL = {'target2': ('🏆 목표②', '#c0392b'), 'target1': ('🎯 목표①', '#e74c3c'),
+                 'stop': ('⛔ 손절', '#2980b9'), '': ('▶ 평가중', '#999')}
+
+    rows = ''
+    for m, label, color in MODELS:
+        if not g(f'PERF_{m}_N'):
+            continue
+        excess = g(f'PERF_{m}_EXCESS1W')
+        rows += f'''<tr>
+          <td class="sn" style="color:{color}">{label}</td>
+          <td>{fp(f'PERF_{m}_RET1W')}</td>
+          <td style="font-weight:700">{g(f'PERF_{m}_WIN1W') or '-'}%</td>
+          <td>{fp_raw(excess) if excess else '<span style="color:#aaa">-</span>'}</td>
+          <td>{fp(f'PERF_{m}_RET4W')}</td>
+          <td style="font-weight:700;color:#e74c3c">{g(f'PERF_{m}_T1HIT') + '%' if g(f'PERF_{m}_T1HIT') else '-'}</td>
+          <td style="font-weight:700;color:#2980b9">{g(f'PERF_{m}_STOPHIT') + '%' if g(f'PERF_{m}_STOPHIT') else '-'}</td>
+          <td style="font-size:12px">{g(f'PERF_{m}_N')}건</td>
+        </tr>'''
+    if not rows:
+        return ''
+
+    # 직전 주 추천 종목별 결과 카드
+    last_date  = g('PERF_LAST_DATE')
+    last_cards = ''
+    for m, label, color in MODELS:
+        cnt = int(g(f'PERF_LAST_{m}_COUNT') or 0)
+        if cnt == 0:
+            continue
+        items = ''
+        for i in range(cnt):
+            v = g(f'PERF_LAST_{m}_{i}')
+            if not v:
+                continue
+            p    = v.split('|')
+            name = p[0]
+            ret  = p[2] if len(p) > 2 else ''
+            hit  = p[3] if len(p) > 3 else ''
+            hit_txt, hit_col = HIT_LABEL.get(hit, HIT_LABEL[''])
+            items += (f'<div style="display:flex;justify-content:space-between;gap:8px;'
+                      f'padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px">'
+                      f'<span style="font-weight:600">{name}</span>'
+                      f'<span>{fp_raw(ret)} <span style="color:{hit_col};font-size:11px">{hit_txt}</span></span></div>')
+        last_cards += (f'<div class="summary-block" style="flex:1;min-width:220px">'
+                       f'<div class="summary-block-title" style="color:{color};font-size:13px">{label}</div>'
+                       f'<div style="background:#fff;border-radius:10px;overflow:hidden;'
+                       f'box-shadow:0 1px 6px rgba(0,0,0,.06)">{items}</div></div>')
+
+    kospi  = g('PERF_KOSPI_RET1W')
+    kospi_note = f' · 같은 기간 KOSPI 1주 평균 {fp_raw(kospi)}' if kospi else ''
+    last_block = (f'<div style="margin-top:18px;font-weight:700;font-size:14px;color:#1a1a2e">'
+                  f'📅 직전 추천({last_date}) 종목별 결과</div>'
+                  f'<div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:10px">{last_cards}</div>'
+                  ) if last_cards else ''
+
+    return f'''<!-- ①-b 지난 추천 성과 -->
+<div class="sec">
+  <div class="sec-title" style="border-left-color:#e67e22">🎯 지난 추천 성과 <span class="model-badge" style="background:#fdf2e9;color:#e67e22">최근 {weeks}회 추천 누적 · 추천 시점 종가 대비</span></div>
+  <div class="model-intro">
+    📌 <b>평가 방식</b>: 추천일 종가 기준 +5/+20거래일 수익률, 목표·손절 도달은 추천 후 20거래일 내 첫 터치 기준{kospi_note}<br>
+    ✅ <b>활용 방법</b>: 모델별 실제 적중률을 확인하고 성과가 검증된 모델에 비중을 둘 것
+  </div>
+  <div style="overflow-x:auto">
+  <table class="sum-table">
+    <thead><tr>
+      <th style="text-align:left;padding-left:14px">모델</th>
+      <th>1주 평균</th><th>1주 승률</th><th>KOSPI 대비</th>
+      <th>4주 평균</th><th>목표 달성</th><th>손절</th><th>표본</th>
+    </tr></thead>
+    <tbody>{rows}</tbody>
+  </table>
+  </div>
+  {last_block}
+</div>
+'''
+
+
+perf_html = performance_section()
+
+
+def regime_banner():
+    """시장 레짐 배너 (시장 요약 섹션 내부)"""
+    reg = g('REGIME')
+    if not reg:
+        return ''
+    style = {'상승': ('#e8f5e9', '#2e7d32', '🟢'),
+             '중립': ('#fff8e1', '#f9a825', '🟡'),
+             '하락': ('#fdecea', '#c0392b', '🔴')}.get(reg, ('#fff8e1', '#f9a825', '🟡'))
+    bg, col, ico = style
+    detail = ''
+    if g('REGIME_KOSPI'):
+        detail = (f" · KOSPI {float(g('REGIME_KOSPI')):,.0f}"
+                  f" (MA200 대비 {float(g('REGIME_GAP')):+.1f}%)"
+                  f" · 변동성 연환산 {g('REGIME_VOL')}%")
+    vol_warn = (' <b>⚠️ 단기 변동성 높음 — 분할 매수 권장</b>'
+                if g('REGIME_VOLWARN') == '1' else '')
+    down_warn = (' <b>⚠️ 약세장 — 추천 종목 수 3개로 축소</b>'
+                 if reg == '하락' else '')
+    return (f'<div style="background:{bg};border-left:4px solid {col};border-radius:8px;'
+            f'padding:12px 16px;margin-top:14px;font-size:13px;color:{col}">'
+            f'{ico} <b>시장 레짐: {reg}</b>{detail}<br>'
+            f'{g("REGIME_ADVICE")}{vol_warn}{down_warn}</div>')
+
+
+regime_html = regime_banner()
+
+
+def corr_note(key):
+    """TOP5 평균 상관계수 노트 (모델 소개 블록용)"""
+    v = g(key)
+    if not v:
+        return ''
+    try:
+        f = float(v)
+    except ValueError:
+        return ''
+    judge = ('분산 우수' if f < 0.4 else
+             '분산 양호' if f < 0.7 else '⚠️ 동조화 높음 — 쏠림 주의')
+    return f'<br>📎 <b>TOP5 평균 상관계수</b>: {v} — {judge} (최근 60일 일별 수익률 기준)'
+
+
+corr_note_s = corr_note('S_AVGCORR')
+corr_note_m = corr_note('M_AVGCORR')
+corr_note_e = corr_note('E_AVGCORR')
+corr_note_i = corr_note('I_AVGCORR')
+
 ks_ret = float(g('KOSPI_RET')  or 0)
 ks_up  = g('KOSPI_UP');  ks_dn = g('KOSPI_DN')
 kd_ret = float(g('KOSDAQ_RET') or 0)
@@ -657,8 +810,10 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
       <div class="mkt-sub">상승 <b style="color:#e74c3c">{kd_up}</b>종목 &nbsp; 하락 <b style="color:#2980b9">{kd_dn}</b>종목</div>
     </div>
   </div>
+  {regime_html}
 </div>
 
+{perf_html}
 <!-- ② 한미 시총 TOP5 -->
 <div class="sec">
   <div class="sec-title">🏆 시가총액 TOP 5 <span class="model-badge" style="background:#f5f5f5;color:#555">당일 기준</span></div>
@@ -772,8 +927,8 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
 <div class="sec">
   <div class="sec-title sec-title-green">🟢 안정 대장주 TOP 5 — 상세 분석 <span class="model-badge badge-stable">시총 상위 · 추세건전성+리스크조정</span></div>
   <div class="model-intro">
-    📌 <b>선정 기준</b>: 시총 상위 350위 이내(업종별 대장주) 중 ①MA 정배열+이격률(35%) ②변동성 대비 수익률(30%) ③RSI·MACD·거래량 안정성(25%) ④12주 모멘텀(10%) 종합 평가<br>
-    ✅ <b>특징</b>: 손절폭 8~12%, 일일 변동성 ≤5%, 안정적 중장기 투자에 적합
+    📌 <b>선정 기준</b>: 시총 상위 350위 이내(업종별 대장주) 중 ①MA 정배열+이격률(35%) ②변동성 대비 수익률(30%) ③RSI·MACD·거래량 안정성(25%) ④12주 모멘텀(10%) 종합 평가 + 섹터당 최대 2종목 분산 선발<br>
+    ✅ <b>특징</b>: 손절폭 8~12%, 일일 변동성 ≤5%, 안정적 중장기 투자에 적합{corr_note_s}
   </div>
   {stable_cards_html}
 </div>
@@ -783,7 +938,7 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
   <div class="sec-title sec-title-orange">🔴 단기 모멘텀 TOP 5 — 상세 분석 <span class="model-badge badge-mom">전 종목 · 1주·4주·12주 모멘텀</span></div>
   <div class="model-intro">
     📌 <b>선정 기준</b>: 전 종목 대상 ①1주·4주·12주 수익률 모멘텀(35%) ②거래량(20%) ③추세(25%) ④RSI·MACD(20%) 종합 평가<br>
-    ⚠️ <b>주의</b>: 단기 급등 종목 포함, 고변동성·높은 손절폭 가능성 — 소량 분할 접근 권장
+    ⚠️ <b>주의</b>: 단기 급등 종목 포함, 고변동성·높은 손절폭 가능성 — 소량 분할 접근 권장{corr_note_m}
   </div>
   {mom_cards_html}
 </div>
@@ -793,7 +948,7 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
   <div class="sec-title sec-title-blue">🔵 ETF 추천 TOP 5 — 상세 분석 <span class="model-badge badge-etf">퀀트 선정 · 레버리지·인버스 제외</span></div>
   <div class="model-intro">
     📌 <b>선정 기준</b>: 전체 ETF 대상(레버리지·인버스 제외) ①MA 추세(40%) ②변동성 대비 수익률(30%) ③RSI·MACD(20%) ④12주 모멘텀(10%) 종합 평가<br>
-    ✅ <b>특징</b>: 분산 투자 효과, 일일 변동성 ≤4%, 중장기 보유에 적합
+    ✅ <b>특징</b>: 분산 투자 효과, 일일 변동성 ≤4%, 중장기 보유에 적합{corr_note_e}
   </div>
   {etf_cards_html}
 </div>
@@ -803,7 +958,7 @@ body{{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-seri
   <div class="sec-title sec-title-purple">🟣 기관연동 한국 종목 TOP 5 — 상세 분석 <span class="model-badge badge-inst">글로벌 기관 섹터 신호 + 기술적 지표</span></div>
   <div class="model-intro">
     📌 <b>선정 기준</b>: 안정 대장주 모델 베이스 + 글로벌 11개 기관 섹터 집중도 보너스(최대 +0.15) 적용 — 기관 집중 섹터와 일치하는 한국 종목 우선 선발<br>
-    ✅ <b>특징</b>: 글로벌 스마트머니 방향성과 한국 기술적 지표를 결합한 복합 모델
+    ✅ <b>특징</b>: 글로벌 스마트머니 방향성과 한국 기술적 지표를 결합한 복합 모델{corr_note_i}
   </div>
   {inst_cards_html}
 </div>

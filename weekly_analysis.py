@@ -83,13 +83,18 @@ def load_recent_prices(days: int = 200) -> pd.DataFrame:
 
 def load_master() -> pd.DataFrame:
     db  = get_db()
-    cur = db['stocks'].find({}, {'_id':0,'code':1,'name':1,'market':1,'marcap':1})
+    cur = db['stocks'].find({}, {'_id':0,'code':1,'name':1,'market':1,'marcap':1,
+                                 'per':1,'pbr':1,'div':1,'industry':1})
     df  = pd.DataFrame(list(cur))
     if df.empty:
         return pd.DataFrame(columns=['Code','Name','Market','Marcap'])
-    df = df.rename(columns={'code':'Code','name':'Name','market':'Market','marcap':'Marcap'})
+    df = df.rename(columns={'code':'Code','name':'Name','market':'Market','marcap':'Marcap',
+                            'per':'PER','pbr':'PBR','div':'DIV','industry':'Industry'})
     df['Code']   = df['Code'].astype(str).str.zfill(6)
     df['Marcap'] = pd.to_numeric(df['Marcap'], errors='coerce')
+    for c in ['PER', 'PBR', 'DIV']:
+        if c in df.columns:
+            df[c] = pd.to_numeric(df[c], errors='coerce')
     return df
 
 
@@ -97,9 +102,9 @@ def load_master() -> pd.DataFrame:
 # 2. 기술 지표 (벡터화)
 # -------------------------------------------------------------------------
 
-def compute_indicators_vectorized(df: pd.DataFrame) -> pd.DataFrame:
-    print("  Rolling 지표 계산 중 (벡터화)...")
-
+def compute_rolling_indicators(df: pd.DataFrame) -> pd.DataFrame:
+    """전체 시계열에 rolling 지표 컬럼 추가. 최신 행 추출 없이 전체를 반환한다
+    (backtest.py가 과거 시점 스냅샷 추출에 재사용)."""
     grp = df.groupby('Code', sort=False)
 
     df['MA5']  = grp['Close'].transform(lambda x: x.rolling(5,  min_periods=5).mean())
@@ -144,6 +149,12 @@ def compute_indicators_vectorized(df: pd.DataFrame) -> pd.DataFrame:
     df.loc[vol_1w_base  <= 0, 'Ret_1W']  = np.nan
     df.loc[vol_4w_base  <= 0, 'Ret_4W']  = np.nan
     df.loc[vol_12w_base <= 0, 'Ret_12W'] = np.nan
+    return df
+
+
+def compute_indicators_vectorized(df: pd.DataFrame) -> pd.DataFrame:
+    print("  Rolling 지표 계산 중 (벡터화)...")
+    df = compute_rolling_indicators(df)
 
     latest = df.groupby('Code').tail(1).copy()
     cnt    = df.groupby('Code').size().rename('cnt')
@@ -359,11 +370,44 @@ _SECTOR_KW = [
 ]
 
 def infer_sector(name: str) -> str:
-    """종목명 키워드로 업종 추론"""
+    """종목명 키워드로 업종 추론.
+    2글자 이하 키워드(KT, LS 등)는 정확 일치만 인정 — 'KT'가 'KT&G'에
+    오매칭되는 것을 방지 (짧은 키워드 미스는 classify_sector의 KSIC 폴백이 보완)."""
     n = str(name)
     for sector, keywords in _SECTOR_KW:
-        if any(k in n for k in keywords):
+        if any((k == n if len(k) <= 2 else k in n) for k in keywords):
             return sector
+    return '대형주'
+
+
+# KRX 표준산업분류(KSIC) → 내부 업종 매핑 (stocks.industry 필드 기반)
+_KSIC_TO_SECTOR = [
+    ('반도체/장비',  ['반도체']),
+    ('IT/전자',     ['통신 및 방송 장비', '전자부품', '컴퓨터', '영상 및 음향', '사무용 기기']),
+    ('바이오/제약',  ['의약품', '의료용', '생물', '의료기기', '기초 의약']),
+    ('금융/보험',    ['은행', '보험', '금융', '증권', '신탁', '여신']),
+    ('자동차/부품',  ['자동차']),
+    ('화학',         ['화학', '고무', '플라스틱', '비료', '농약']),
+    ('철강/소재',    ['1차 금속', '금속 가공', '비금속 광물']),
+    ('건설/부동산',  ['건설', '부동산', '토목', '건물']),
+    ('유통/소비재',  ['도매', '소매', '식료품', '음료', '섬유', '의복', '가죽', '담배']),
+    ('통신/플랫폼',  ['전기 통신', '소프트웨어', '정보서비스', '포털', '출판', '자료 처리']),
+    ('에너지/전력',  ['전기, 가스', '석유 정제', '연료', '전동기', '전기 변환', '전선', '배전']),
+    ('조선/기계',    ['선박', '기계', '일반 목적용', '특수 목적용']),
+    ('방산/항공',    ['항공', '무기', '운송장비']),
+    ('게임/엔터',    ['게임', '오락', '영화', '방송업', '창작', '스포츠']),
+]
+
+
+def classify_sector(name: str, industry=None) -> str:
+    """종목명 키워드 우선, 미분류 시 KRX 표준산업분류(industry)로 보완."""
+    s = infer_sector(name)
+    if s != '대형주':
+        return s
+    if industry is not None and isinstance(industry, str) and industry.strip():
+        for sector, kws in _KSIC_TO_SECTOR:
+            if any(k in industry for k in kws):
+                return sector
     return '대형주'
 
 
@@ -371,7 +415,10 @@ def infer_sector(name: str) -> str:
 # 4. 스크리닝 & 스코어링 (대장주 안정 투자 모델)
 # -------------------------------------------------------------------------
 
-def screen_and_score(ind: pd.DataFrame, master: pd.DataFrame) -> pd.DataFrame:
+def screen_and_score(ind: pd.DataFrame, master: pd.DataFrame,
+                     weights: tuple = (0.35, 0.30, 0.25, 0.10),
+                     verbose: bool = True) -> pd.DataFrame:
+    """weights: (추세건전성, 리스크조정, 기술안정성, 중기모멘텀) — backtest.py가 변형 비교에 사용"""
     df = ind.merge(master, on='Code', how='left')
     df['Marcap'] = pd.to_numeric(df.get('Marcap'), errors='coerce')
 
@@ -380,7 +427,8 @@ def screen_and_score(ind: pd.DataFrame, master: pd.DataFrame) -> pd.DataFrame:
     if len(valid_cap) > 350:
         cap_thr = valid_cap['Marcap'].nlargest(350).min()
         df = df[df['Marcap'] >= cap_thr].copy()
-    print(f"  시총 대장주 필터 후: {len(df):,}종목")
+    if verbose:
+        print(f"  시총 대장주 필터 후: {len(df):,}종목")
 
     # ── ATR% 계산 ──
     df['ATR_Pct'] = df['ATR'] / df['Close'].replace(0, np.nan) * 100
@@ -397,7 +445,19 @@ def screen_and_score(ind: pd.DataFrame, master: pd.DataFrame) -> pd.DataFrame:
         (df['ATR_Pct'] <= 5.0) &
         (df['Close'] >= df['MA60'] * 0.88)
     ].copy()
-    print(f"  품질 필터 후: {len(df):,}종목")
+    if verbose:
+        print(f"  품질 필터 후: {len(df):,}종목")
+
+    # ── 밸류에이션 가드 (펀더멘털 저장돼 있을 때만) ──
+    # 극단적 고평가 종목 제외 — PER/PBR 0 또는 NaN(적자·데이터 없음)은 통과시킨다
+    if 'PER' in df.columns and df['PER'].notna().any():
+        per  = pd.to_numeric(df['PER'], errors='coerce')
+        pbr  = pd.to_numeric(df.get('PBR'), errors='coerce')
+        over = ((per > 300) & per.notna()) | ((pbr > 30) & pbr.notna())
+        if over.any():
+            if verbose:
+                print(f"  밸류에이션 가드: 극단 고평가 {int(over.sum())}종목 제외 (PER>300 또는 PBR>30)")
+            df = df[~over].copy()
 
     if df.empty:
         return df
@@ -458,21 +518,54 @@ def screen_and_score(ind: pd.DataFrame, master: pd.DataFrame) -> pd.DataFrame:
     df['Score_Mom'] = pct_rank(df['Ret_12W'])
 
     # ── 종합 점수 ──
-    df['Score_Total'] = (df['Score_Trend'] * 0.35 +
-                         df['Score_RA']    * 0.30 +
-                         df['Score_Tech']  * 0.25 +
-                         df['Score_Mom']   * 0.10)
+    w_trend, w_ra, w_tech, w_mom = weights
+    df['Score_Total'] = (df['Score_Trend'] * w_trend +
+                         df['Score_RA']    * w_ra +
+                         df['Score_Tech']  * w_tech +
+                         df['Score_Mom']   * w_mom)
 
     df = df.sort_values('Score_Total', ascending=False).reset_index(drop=True)
-    print(f"  최종 후보군: {len(df):,}종목")
+    if verbose:
+        print(f"  최종 후보군: {len(df):,}종목")
     return df
+
+
+def select_diverse_top(df: pd.DataFrame, n: int = 5, max_per_sector: int = 2) -> pd.DataFrame:
+    """점수순 선발하되 섹터당 최대 max_per_sector개로 쏠림 방지.
+    섹터 제한으로 n개를 못 채우면 점수순으로 보충한다."""
+    if df.empty:
+        return df
+    if 'Sector' not in df.columns:
+        inds = df['Industry'] if 'Industry' in df.columns \
+               else pd.Series([None] * len(df), index=df.index)
+        df = df.copy()
+        df['Sector'] = [classify_sector(nm, i) for nm, i in zip(df['Name'], inds)]
+
+    picked, counts, codes = [], {}, set()
+    for _, row in df.iterrows():
+        sec = row['Sector']
+        if counts.get(sec, 0) < max_per_sector:
+            picked.append(row)
+            counts[sec] = counts.get(sec, 0) + 1
+            codes.add(row['Code'])
+        if len(picked) >= n:
+            break
+    if len(picked) < n:
+        for _, row in df.iterrows():
+            if row['Code'] not in codes:
+                picked.append(row)
+                codes.add(row['Code'])
+            if len(picked) >= n:
+                break
+    return pd.DataFrame(picked).reset_index(drop=True)
 
 
 # -------------------------------------------------------------------------
 # 5. 스크리닝 & 스코어링 (구 단기 모멘텀 모델)
 # -------------------------------------------------------------------------
 
-def screen_and_score_momentum(ind: pd.DataFrame, master: pd.DataFrame) -> pd.DataFrame:
+def screen_and_score_momentum(ind: pd.DataFrame, master: pd.DataFrame,
+                              verbose: bool = True) -> pd.DataFrame:
     """단기 모멘텀 모델 — 1주·4주·12주 수익률 기반, 전 종목 대상"""
     df = ind.merge(master, on='Code', how='left')
 
@@ -508,7 +601,8 @@ def screen_and_score_momentum(ind: pd.DataFrame, master: pd.DataFrame) -> pd.Dat
 
     df = df[(df['Close'] >= df['MA60']) & (df['RSI'] < 75)].copy()
     df = df.sort_values('Score_Total', ascending=False).reset_index(drop=True)
-    print(f"  [모멘텀] 최종 후보군: {len(df):,}종목")
+    if verbose:
+        print(f"  [모멘텀] 최종 후보군: {len(df):,}종목")
     return df
 
 
@@ -634,9 +728,10 @@ def screen_institutional_aligned(ind: pd.DataFrame, master: pd.DataFrame) -> pd.
     if df.empty:
         return df
 
-    # 업종 컬럼이 없으면 추론
+    # 업종 컬럼이 없으면 추론 (KRX 표준산업분류 보완)
     if 'Sector' not in df.columns:
-        df['Sector'] = df['Name'].apply(infer_sector)
+        inds = df['Industry'] if 'Industry' in df.columns else pd.Series([None] * len(df), index=df.index)
+        df['Sector'] = [classify_sector(n, i) for n, i in zip(df['Name'], inds)]
 
     df['Inst_Boost']  = df['Sector'].apply(lambda s: calc_sector_boost(s, inst_weights))
     df['Score_Inst']  = (df['Score_Total'] + df['Inst_Boost']).clip(upper=1.0)

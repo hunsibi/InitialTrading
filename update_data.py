@@ -95,12 +95,70 @@ def refresh_stocks():
 
     db   = get_db()
     coll = db['stocks']
-    coll.drop()
+    # drop 대신 upsert — per/pbr/industry 등 펀더멘털 필드를 보존한다
     ops = [UpdateOne({'code': r['code']}, {'$set': r}, upsert=True)
            for r in master.to_dict('records')]
     coll.bulk_write(ops, ordered=False)
+    removed = coll.delete_many({'code': {'$nin': master['code'].tolist()}}).deleted_count
     coll.create_index([('code', ASCENDING)], unique=True)
-    print(f"  ✅ stocks 갱신 완료: {len(master):,}개 종목")
+    print(f"  ✅ stocks 갱신 완료: {len(master):,}개 종목 (상장폐지 {removed}개 제거)")
+
+
+# ── 펀더멘털 + 업종 갱신 ──────────────────────────────
+def refresh_fundamentals():
+    """pykrx PER/PBR/EPS/배당수익률 + FDR KRX-DESC 업종(Industry)을 stocks에 병합.
+    KRX 접근 불가(해외 IP 차단) 시 기존 저장값 유지하고 계속 진행."""
+    print("  펀더멘털(PER/PBR/DIV)·업종 갱신 중...")
+    try:
+        import krx_config as _kc
+        os.environ.setdefault('KRX_ID', _kc.KRX_ID)
+        os.environ.setdefault('KRX_PW', _kc.KRX_PW)
+    except ImportError:
+        pass
+
+    db  = get_db()
+    ops = []
+
+    # 1. pykrx 펀더멘털
+    from pykrx import stock as ps
+    day = ps.get_nearest_business_day_in_a_week()
+    for market in ['KOSPI', 'KOSDAQ']:
+        fund = ps.get_market_fundamental(day, market=market)
+        if fund is None or fund.empty:
+            continue
+        for code, row in fund.iterrows():
+            ops.append(UpdateOne(
+                {'code': str(code).zfill(6)},
+                {'$set': {
+                    'per':       float(row.get('PER', 0) or 0),
+                    'pbr':       float(row.get('PBR', 0) or 0),
+                    'eps':       float(row.get('EPS', 0) or 0),
+                    'div':       float(row.get('DIV', 0) or 0),
+                    'fund_date': day,
+                }}))
+    n_fund = len(ops)
+
+    # 2. FDR 업종 (KRX 상장법인 표준산업분류)
+    n_ind = 0
+    try:
+        desc = fdr.StockListing('KRX-DESC')
+        if 'Code' in desc.columns and 'Industry' in desc.columns:
+            sub = desc[['Code', 'Industry']].dropna(subset=['Code'])
+            for _, r in sub.iterrows():
+                ind = r['Industry']
+                if pd.isna(ind) or not str(ind).strip():
+                    continue
+                ops.append(UpdateOne(
+                    {'code': str(r['Code']).zfill(6)},
+                    {'$set': {'industry': str(ind).strip()}}))
+                n_ind += 1
+    except Exception as _de:
+        print(f"  [경고] 업종(KRX-DESC) 수집 실패: {_de}")
+
+    if ops:
+        for start in range(0, len(ops), CHUNK_SIZE):
+            db['stocks'].bulk_write(ops[start:start + CHUNK_SIZE], ordered=False)
+    print(f"  ✅ 펀더멘털 {n_fund:,}건 / 업종 {n_ind:,}건 갱신 완료 (기준일 {day})")
 
 
 # ── 메인 ──────────────────────────────────────────────
@@ -126,6 +184,13 @@ def run_update():
     except Exception as _re:
         print(f"  [경고] 종목 마스터 갱신 실패 (KRX 접근 불가): {_re}")
         print("  → 기존 stocks 컬렉션 데이터로 분석 계속 진행합니다.")
+
+    # 펀더멘털·업종 갱신 — 실패해도 기존 저장값으로 계속 진행
+    try:
+        refresh_fundamentals()
+    except Exception as _fe:
+        print(f"  [경고] 펀더멘털 갱신 실패 (KRX 접근 불가): {_fe}")
+        print("  → 기존 펀더멘털 데이터로 분석 계속 진행합니다.")
 
     if latest_dt is None:
         print("  ▸ DB 비어있음 — 초기 전체 수집 시작 (최근 90일)")
