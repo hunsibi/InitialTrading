@@ -106,8 +106,6 @@ build_html.py                ← HTML 리포트 렌더링
 send_telegram.py             ← 텔레그램 전송 (4개 메시지)
 parse_report.py              ← 리포트 파싱 헬퍼 (/분석 커맨드가 호출)
 telegram_config.py           ← BOT_TOKEN / CHAT_ID 설정
-migrate_to_db.py             ← 최초 1회 CSV→MongoDB 마이그레이션 (보관용)
-1_migrate.bat                ← migrate_to_db.py 실행 헬퍼 (보관용)
 2_weekly.bat                 ← run_pipeline.py 실행 + 리포트 자동 오픈
 .claude/commands/분석.md     ← /분석 슬래시 커맨드 정의
 outputs/reports/weekly_full_*.html ← 파싱 원본 데이터

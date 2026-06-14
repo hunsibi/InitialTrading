@@ -3,9 +3,7 @@ telegram_config.py
 krx_config.py
 
 # 대용량 데이터
-outputs/data/prices_*.csv
-outputs/reports/
-outputs/data/
+outputs/
 
 # 로컬 Claude 설정
 .claude/settings.local.json

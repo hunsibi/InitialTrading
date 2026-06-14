@@ -62,7 +62,7 @@ def load_recent_prices(days: int = 200) -> pd.DataFrame:
     df = pd.DataFrame(list(cursor))
 
     if df.empty:
-        raise RuntimeError("가격 데이터가 없습니다. migrate_to_db.py를 먼저 실행하세요.")
+        raise RuntimeError("가격 데이터가 없습니다. MongoDB가 실행 중인지 확인하세요.")
 
     df['date']   = pd.to_datetime(df['date'])
     df['code']   = df['code'].astype(str).str.zfill(6)
