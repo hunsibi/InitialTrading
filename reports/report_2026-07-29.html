@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>주간 퀀트 리포트 | 2026-07-29</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+     background:#eef1f7;color:#1a1a2e;font-size:14px;line-height:1.6}
+.hdr{background:linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%);
+      color:#fff;padding:30px 36px 26px}
+.hdr h1{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.hdr p{margin-top:6px;color:#8ab4d4;font-size:12px}
+.hdr-badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.hbadge{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);
+         padding:4px 12px;border-radius:16px;font-size:11px;color:#cde}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px}
+.sec{margin:22px 0}
+.sec-title{font-size:15px;font-weight:800;color:#1a1a2e;
+            border-left:4px solid #0f3460;padding-left:10px;margin-bottom:14px}
+.sec-title-green{border-left-color:#16a085}
+.sec-title-orange{border-left-color:#f6a623}
+.sec-title-blue{border-left-color:#2980b9}
+.sec-title-purple{border-left-color:#8e44ad}
+.sec-title-global{border-left-color:#d4ac0d}
+.model-badge{display:inline-block;padding:3px 10px;border-radius:12px;
+              font-size:11px;font-weight:700;margin-left:10px;vertical-align:middle}
+.badge-stable{background:#e8f8f3;color:#16a085}
+.badge-mom{background:#fff3e0;color:#e65100}
+.badge-etf{background:#e3f2fd;color:#1565c0}
+.badge-inst{background:#f3e5f5;color:#7b1fa2}
+.badge-global{background:#fef9e7;color:#b7950b}
+.mkt-row{display:flex;gap:14px}
+.mkt-card{flex:1;background:#fff;border-radius:12px;padding:20px 24px;
+           box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.mkt-label{font-size:11px;color:#999;margin-bottom:6px;font-weight:600}
+.mkt-val{font-size:30px;font-weight:900}
+.mkt-sub{font-size:12px;color:#777;margin-top:6px}
+.summary-block{background:#fff;border-radius:14px;padding:20px 22px;
+                box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:20px}
+.summary-block-title{font-size:13px;font-weight:800;margin-bottom:12px;
+                       padding-bottom:8px;border-bottom:1px solid #f0f0f0}
+.card{background:#fff;border-radius:14px;
+       box-shadow:0 2px 10px rgba(0,0,0,.07);overflow:hidden;margin-bottom:18px}
+.card-top{display:flex;align-items:center;gap:14px;padding:18px 22px 16px;
+           border-bottom:1px solid #f0f0f0}
+.rank-dot{width:44px;height:44px;border-radius:50%;display:flex;
+           align-items:center;justify-content:center;
+           font-size:14px;font-weight:900;color:#fff;flex-shrink:0}
+.card-title-wrap{flex:1}
+.card-name{font-size:19px;font-weight:900;letter-spacing:-.3px}
+.card-meta{font-size:12px;color:#999;margin-top:3px}
+.sector-tag{background:#e8f0ff;color:#0f3460;padding:2px 9px;
+             border-radius:10px;font-weight:700;font-size:11px}
+.card-price{text-align:right}
+.price-num{font-size:22px;font-weight:900}
+.card-body{padding:18px 22px}
+.info-box{border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.box-label{font-size:11px;font-weight:700;color:#0f3460;
+            text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:680px){.two-col{grid-template-columns:1fr}}
+.reason-box{background:#fffbf0;border-left:4px solid #f9a825}
+.reason-list{list-style:none;margin-top:4px}
+.reason-list li{font-size:13px;color:#444;padding:4px 0 4px 20px;
+                 position:relative;line-height:1.6}
+.reason-list li::before{content:"✓";position:absolute;left:0;
+                         color:#f9a825;font-weight:800}
+.indicator-box{background:#f4fdff;border-left:4px solid #00b4d8}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.chip{background:#fff;border:1px solid #e0e0e0;border-radius:8px;
+       padding:6px 11px;font-size:12px}
+.chip .cl{display:block;color:#aaa;font-size:10px;margin-bottom:1px}
+.rsi-ok{color:#2e7d32;font-weight:700;background:#e8f5e9;
+         padding:1px 6px;border-radius:4px}
+.rsi-warn{color:#e65100;font-weight:700;background:#fff3e0;
+           padding:1px 6px;border-radius:4px}
+.trade-grid{display:grid;grid-template-columns:repeat(4,1fr);
+             border-radius:10px;overflow:hidden;border:1px solid #eee}
+@media(max-width:540px){.trade-grid{grid-template-columns:repeat(2,1fr)}}
+.tc{padding:14px 12px;text-align:center;border-right:1px solid #f0f0f0}
+.tc:last-child{border-right:none}
+.tl{font-size:11px;font-weight:600;color:#999;margin-bottom:6px}
+.tv{font-size:18px;font-weight:900;font-family:monospace}
+.ts{font-size:11px;margin-top:4px;font-weight:600}
+.tc-entry{background:#f8f9ff}.tc-entry .tv{color:#1a1a2e}
+.tc-stop{background:#eef4ff}.tc-stop .tv,.tc-stop .ts{color:#2980b9}
+.tc-t1{background:#fff5f5}.tc-t1 .tv,.tc-t1 .ts{color:#e74c3c}
+.tc-t2{background:#fff0ee}.tc-t2 .tv,.tc-t2 .ts{color:#c0392b}
+.caution{background:#fff3e0;border-left:3px solid #ff9800;border-radius:6px;
+          padding:10px 14px;font-size:12px;color:#e65100;margin-top:12px}
+.sum-table{width:100%;border-collapse:collapse;background:#fff;
+            border-radius:12px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.sum-table th{background:#1a1a2e;color:#fff;padding:11px 10px;
+               font-size:11px;text-align:center;white-space:nowrap}
+.sum-table td{padding:11px 10px;border-bottom:1px solid #f2f2f2;
+               text-align:center;font-size:13px;vertical-align:middle}
+.sum-table tr:last-child td{border-bottom:none}
+.sum-table tr:hover td{background:#f7f9ff}
+.sn{text-align:left !important;padding-left:14px !important;font-weight:700}
+.mono{font-family:monospace;font-size:12px}
+.left{text-align:left !important;font-weight:600}
+.notice{background:#fff8e1;border-left:4px solid #f9a825;
+         border-radius:8px;padding:14px 18px;font-size:12px;
+         color:#666;line-height:1.9;margin-top:0}
+.model-intro{background:#fff;border-radius:12px;padding:14px 18px;
+              margin-bottom:16px;box-shadow:0 1px 6px rgba(0,0,0,.06);font-size:13px}
+.divider{height:2px;background:linear-gradient(90deg,#0f3460,transparent);
+          margin:32px 0;border-radius:2px;opacity:.3}
+.footer{text-align:center;padding:24px;color:#bbb;font-size:11px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>📊 주간 퀀트 리포트 — 2026-07-29</h1>
+  <p>기준일: 2026-07-29 (금요일 마감) &nbsp;|&nbsp; 차주 월요일(2026-08-03) 투자 전략</p>
+  <div class="hdr-badges">
+    <span class="hbadge">🟢 안정 대장주 TOP5</span>
+    <span class="hbadge">🔴 단기 모멘텀 TOP5</span>
+    <span class="hbadge">🔵 ETF 추천 TOP5</span>
+    <span class="hbadge">🟣 기관연동 한국종목 TOP5</span>
+    <span class="hbadge">🌍 글로벌 기관 포트폴리오</span>
+    <span class="hbadge">🤖 퀀트 모델 자동 산출</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+<!-- ① 시장 요약 -->
+<div class="sec">
+  <div class="sec-title">📈 이번 주 시장 요약</div>
+  <div class="mkt-row">
+    <div class="mkt-card">
+      <div class="mkt-label">KOSPI</div>
+      <div class="mkt-val" style="color:#2980b9">▼ -4.63%</div>
+      <div class="mkt-sub">상승 <b style="color:#e74c3c">184</b>종목 &nbsp; 하락 <b style="color:#2980b9">728</b>종목</div>
+    </div>
+    <div class="mkt-card">
+      <div class="mkt-label">KOSDAQ</div>
+      <div class="mkt-val" style="color:#2980b9">▼ -7.03%</div>
+      <div class="mkt-sub">상승 <b style="color:#e74c3c">231</b>종목 &nbsp; 하락 <b style="color:#2980b9">1487</b>종목</div>
+    </div>
+  </div>
+  <div style="background:#fdecea;border-left:4px solid #c0392b;border-radius:8px;padding:12px 16px;margin-top:14px;font-size:13px;color:#c0392b">🔴 <b>시장 레짐: 하락</b> · KOSPI 5,663 (MA200 대비 -0.8%) · 변동성 연환산 80.5%<br>약세 구간 — 신규 매수 최소화, 현금·채권 ETF 비중 확대 권장 <b>⚠️ 단기 변동성 높음 — 분할 매수 권장</b> <b>⚠️ 약세장 — 추천 종목 수 3개로 축소</b></div>
+</div>
+
+<!-- ①-b 지난 추천 성과 -->
+<div class="sec">
+  <div class="sec-title" style="border-left-color:#e67e22">🎯 지난 추천 성과 <span class="model-badge" style="background:#fdf2e9;color:#e67e22">최근 12회 추천 누적 · 추천 시점 종가 대비</span></div>
+  <div class="model-intro">
+    📌 <b>평가 방식</b>: 추천일 종가 기준 +5/+20거래일 수익률, 목표·손절 도달은 추천 후 20거래일 내 첫 터치 기준 · 같은 기간 KOSPI 1주 평균 <span style="color:#2980b9;font-weight:700">-6.22%</span><br>
+    ✅ <b>활용 방법</b>: 모델별 실제 적중률을 확인하고 성과가 검증된 모델에 비중을 둘 것
+  </div>
+  <div style="overflow-x:auto">
+  <table class="sum-table">
+    <thead><tr>
+      <th style="text-align:left;padding-left:14px">모델</th>
+      <th>1주 평균</th><th>1주 승률</th><th>KOSPI 대비</th>
+      <th>4주 평균</th><th>목표 달성</th><th>손절</th><th>표본</th>
+    </tr></thead>
+    <tbody><tr>
+          <td class="sn" style="color:#16a085">🟢 안정 대장주</td>
+          <td><span style="color:#e74c3c;font-weight:700">+0.24%</span></td>
+          <td style="font-weight:700">52%</td>
+          <td><span style="color:#e74c3c;font-weight:700">+6.26%</span></td>
+          <td><span style="color:#aaa">-</span></td>
+          <td style="font-weight:700;color:#e74c3c">30%</td>
+          <td style="font-weight:700;color:#2980b9">70%</td>
+          <td style="font-size:12px">54건</td>
+        </tr><tr>
+          <td class="sn" style="color:#e65100">🔴 단기 모멘텀</td>
+          <td><span style="color:#2980b9;font-weight:700">-5.33%</span></td>
+          <td style="font-weight:700">31%</td>
+          <td><span style="color:#2980b9;font-weight:700">-0.12%</span></td>
+          <td><span style="color:#aaa">-</span></td>
+          <td style="font-weight:700;color:#e74c3c">12%</td>
+          <td style="font-weight:700;color:#2980b9">88%</td>
+          <td style="font-size:12px">45건</td>
+        </tr><tr>
+          <td class="sn" style="color:#1565c0">🔵 ETF 추천</td>
+          <td><span style="color:#2980b9;font-weight:700">-0.55%</span></td>
+          <td style="font-weight:700">37%</td>
+          <td><span style="color:#e74c3c;font-weight:700">+5.04%</span></td>
+          <td><span style="color:#aaa">-</span></td>
+          <td style="font-weight:700;color:#e74c3c">0%</td>
+          <td style="font-weight:700;color:#2980b9">100%</td>
+          <td style="font-size:12px">35건</td>
+        </tr><tr>
+          <td class="sn" style="color:#7b1fa2">🟣 기관연동</td>
+          <td><span style="color:#e74c3c;font-weight:700">+1.08%</span></td>
+          <td style="font-weight:700">63%</td>
+          <td><span style="color:#e74c3c;font-weight:700">+6.54%</span></td>
+          <td><span style="color:#aaa">-</span></td>
+          <td style="font-weight:700;color:#e74c3c">33%</td>
+          <td style="font-weight:700;color:#2980b9">67%</td>
+          <td style="font-size:12px">52건</td>
+        </tr></tbody>
+  </table>
+  </div>
+  <div style="margin-top:18px;font-weight:700;font-size:14px;color:#1a1a2e">📅 직전 추천(2026-07-22) 종목별 결과</div><div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:10px"><div class="summary-block" style="flex:1;min-width:220px"><div class="summary-block-title" style="color:#16a085;font-size:13px">🟢 안정 대장주</div><div style="background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.06)"><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">KB발해인프라</span><span><span style="color:#2980b9;font-weight:700">-3.75%</span> <span style="color:#999;font-size:11px">▶ 평가중</span></span></div><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">LG생활건강</span><span><span style="color:#e74c3c;font-weight:700">+7.79%</span> <span style="color:#e74c3c;font-size:11px">🎯 목표①</span></span></div><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">현대그린푸드</span><span><span style="color:#e74c3c;font-weight:700">+1.05%</span> <span style="color:#999;font-size:11px">▶ 평가중</span></span></div><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">동서</span><span><span style="color:#2980b9;font-weight:700">-0.59%</span> <span style="color:#999;font-size:11px">▶ 평가중</span></span></div></div></div><div class="summary-block" style="flex:1;min-width:220px"><div class="summary-block-title" style="color:#e65100;font-size:13px">🔴 단기 모멘텀</div><div style="background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.06)"><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">삼성공조</span><span><span style="color:#2980b9;font-weight:700">-23.85%</span> <span style="color:#2980b9;font-size:11px">⛔ 손절</span></span></div><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">GS</span><span><span style="color:#2980b9;font-weight:700">-0.12%</span> <span style="color:#999;font-size:11px">▶ 평가중</span></span></div><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">롯데손해보험</span><span><span style="color:#2980b9;font-weight:700">-16.49%</span> <span style="color:#2980b9;font-size:11px">⛔ 손절</span></span></div><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">에이플러스에셋</span><span><span style="color:#2980b9;font-weight:700">-7.43%</span> <span style="color:#999;font-size:11px">▶ 평가중</span></span></div></div></div><div class="summary-block" style="flex:1;min-width:220px"><div class="summary-block-title" style="color:#1565c0;font-size:13px">🔵 ETF 추천</div><div style="background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.06)"><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">TIGER 미국배당다우존스</span><span><span style="color:#e74c3c;font-weight:700">+1.17%</span> <span style="color:#999;font-size:11px">▶ 평가중</span></span></div></div></div><div class="summary-block" style="flex:1;min-width:220px"><div class="summary-block-title" style="color:#7b1fa2;font-size:13px">🟣 기관연동</div><div style="background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.06)"><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">KB발해인프라</span><span><span style="color:#2980b9;font-weight:700">-3.75%</span> <span style="color:#999;font-size:11px">▶ 평가중</span></span></div><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">현대그린푸드</span><span><span style="color:#e74c3c;font-weight:700">+1.05%</span> <span style="color:#999;font-size:11px">▶ 평가중</span></span></div><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">메리츠금융지주</span><span><span style="color:#e74c3c;font-weight:700">+2.8%</span> <span style="color:#999;font-size:11px">▶ 평가중</span></span></div><div style="display:flex;justify-content:space-between;gap:8px;padding:6px 10px;border-bottom:1px solid #f2f2f2;font-size:13px"><span style="font-weight:600">LG생활건강</span><span><span style="color:#e74c3c;font-weight:700">+7.79%</span> <span style="color:#e74c3c;font-size:11px">🎯 목표①</span></span></div></div></div></div>
+</div>
+
+<!-- ② 한미 시총 TOP5 -->
+<div class="sec">
+  <div class="sec-title">🏆 시가총액 TOP 5 <span class="model-badge" style="background:#f5f5f5;color:#555">당일 기준</span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div class="summary-block">
+    <div class="summary-block-title">🇰🇷 한국 시가총액 TOP 5</div>
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:36px">#</th>
+        <th style="text-align:left;padding-left:14px">종목명</th>
+        <th>시가총액</th><th>현재가</th><th>주간</th>
+      </tr></thead>
+      <tbody><tr>
+          <td style="font-weight:900;color:#1a1a2e;font-size:15px">1</td>
+          <td class="sn">삼성전자<br><small style="color:#aaa;font-weight:400">005930</small></td>
+          <td style="font-family:monospace;font-weight:700;font-size:13px">1218.9조원</td>
+          <td style="font-family:monospace;font-size:13px">208,500원</td>
+          <td><span style="color:#2980b9;font-weight:700">-19.96%</span></td>
+        </tr><tr>
+          <td style="font-weight:900;color:#1a1a2e;font-size:15px">2</td>
+          <td class="sn">SK하이닉스<br><small style="color:#aaa;font-weight:400">000660</small></td>
+          <td style="font-family:monospace;font-weight:700;font-size:13px">1023.4조원</td>
+          <td style="font-family:monospace;font-size:13px">1,401,000원</td>
+          <td><span style="color:#2980b9;font-weight:700">-23.44%</span></td>
+        </tr><tr>
+          <td style="font-weight:900;color:#1a1a2e;font-size:15px">3</td>
+          <td class="sn">삼성전자우<br><small style="color:#aaa;font-weight:400">005935</small></td>
+          <td style="font-family:monospace;font-weight:700;font-size:13px">123.1조원</td>
+          <td style="font-family:monospace;font-size:13px">153,400원</td>
+          <td><span style="color:#2980b9;font-weight:700">-17.13%</span></td>
+        </tr><tr>
+          <td style="font-weight:900;color:#1a1a2e;font-size:15px">4</td>
+          <td class="sn">SK스퀘어<br><small style="color:#aaa;font-weight:400">402340</small></td>
+          <td style="font-family:monospace;font-weight:700;font-size:13px">112.2조원</td>
+          <td style="font-family:monospace;font-size:13px">850,000원</td>
+          <td><span style="color:#2980b9;font-weight:700">-30.89%</span></td>
+        </tr><tr>
+          <td style="font-weight:900;color:#1a1a2e;font-size:15px">5</td>
+          <td class="sn">삼성전기<br><small style="color:#aaa;font-weight:400">009150</small></td>
+          <td style="font-family:monospace;font-weight:700;font-size:13px">76.9조원</td>
+          <td style="font-family:monospace;font-size:13px">1,029,000원</td>
+          <td><span style="color:#2980b9;font-weight:700">-23.49%</span></td>
+        </tr></tbody>
+    </table>
+  </div>
+  <div class="summary-block">
+    <div class="summary-block-title">🇺🇸 미국 시가총액 TOP 5</div>
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:36px">#</th>
+        <th style="text-align:left;padding-left:14px">기업명</th>
+        <th>시가총액</th><th>현재가</th><th>주간</th>
+      </tr></thead>
+      <tbody><tr><td colspan="5" style="color:#aaa;padding:20px;text-align:center">미국 시총 데이터 없음</td></tr></tbody>
+    </table>
+  </div>
+</div>
+<style>@media(max-width:700px){.mktcap-grid{grid-template-columns:1fr !important}}</style>
+</div>
+
+<!-- ②-b 한국 외국인/기관 섹터 매매 동향 -->
+<div class="sec">
+  <div class="sec-title" style="border-left-color:#c0392b">🇰🇷 한국 시장 수급 동향 <span class="model-badge" style="background:#fdecea;color:#c0392b">외국인/기관 섹터 매매 · 주간 기준</span></div>
+  <div class="model-intro">
+    📌 <b>데이터 출처</b>: pykrx (KRX 공식 데이터) — KRX_ID/KRX_PW 환경변수 미설정 시 MongoDB 거래량 기반 추정<br>
+    ✅ <b>활용 방법</b>: 외국인·기관의 자금 쏠림 섹터를 파악하고 기관연동 모델의 한국 수혜 업종과 교차 확인
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div class="summary-block">
+    <div class="summary-block-title" style="color:#c0392b">🌏 외국인 순매수 TOP5 📈</div>
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:28px">#</th>
+        <th style="text-align:left;padding-left:10px">종목</th>
+        <th>거래대금</th>
+      </tr></thead>
+      <tbody><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">1</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">SK스퀘어</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">402340</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 1,777억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">2</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">삼성전자우</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">005935</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 1,591억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">3</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">주성엔지니어링</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">036930</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 540억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">4</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">현대차</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">005380</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 522억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">5</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">대덕전자</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">353200</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 482억원
+              </td>
+            </tr></tbody>
+    </table>
+  </div><div class="summary-block">
+    <div class="summary-block-title" style="color:#2471a3">🌏 외국인 순매도 TOP5 📉</div>
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:28px">#</th>
+        <th style="text-align:left;padding-left:10px">종목</th>
+        <th>거래대금</th>
+      </tr></thead>
+      <tbody><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">1</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">SK하이닉스</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">000660</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 12,374억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">2</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">삼성전자</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">005930</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 7,268억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">3</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">삼성물산</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">028260</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 446억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">4</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">KB금융</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">105560</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 409억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">5</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">파마리서치</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">214450</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 358억원
+              </td>
+            </tr></tbody>
+    </table>
+  </div><div class="summary-block">
+    <div class="summary-block-title" style="color:#c0392b">🏦 기관 순매수 TOP5 📈</div>
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:28px">#</th>
+        <th style="text-align:left;padding-left:10px">종목</th>
+        <th>거래대금</th>
+      </tr></thead>
+      <tbody><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">1</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">삼성전자</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">005930</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 12,863억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">2</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">SK하이닉스</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">000660</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 11,109억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">3</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">삼성전기</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">009150</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 1,023억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">4</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">파마리서치</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">214450</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 828억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">5</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">현대차</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">005380</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 570억원
+              </td>
+            </tr></tbody>
+    </table>
+  </div><div class="summary-block">
+    <div class="summary-block-title" style="color:#2471a3">🏦 기관 순매도 TOP5 📉</div>
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:28px">#</th>
+        <th style="text-align:left;padding-left:10px">종목</th>
+        <th>거래대금</th>
+      </tr></thead>
+      <tbody><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">1</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">하이브</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">352820</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 436억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">2</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">삼성전자우</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">005935</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 372억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">3</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">대덕전자</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">353200</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 312억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">4</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">한미약품</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">128940</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 267억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">5</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">HD현대일렉트릭</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">267260</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 241억원
+              </td>
+            </tr></tbody>
+    </table>
+  </div><div class="summary-block">
+    <div class="summary-block-title" style="color:#c0392b">👤 개인 순매수 TOP5 📈</div>
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:28px">#</th>
+        <th style="text-align:left;padding-left:10px">종목</th>
+        <th>거래대금</th>
+      </tr></thead>
+      <tbody><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">1</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">SK하이닉스</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">000660</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 936억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">2</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">하이브</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">352820</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 323억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">3</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">HD현대일렉트릭</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">267260</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 275억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">4</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">GS건설</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">006360</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 232억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">5</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">레인보우로보틱스</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">277810</span>
+              </td>
+              <td style="font-family:monospace;color:#c0392b;font-weight:700;white-space:nowrap">
+                ▲ 223억원
+              </td>
+            </tr></tbody>
+    </table>
+  </div><div class="summary-block">
+    <div class="summary-block-title" style="color:#2471a3">👤 개인 순매도 TOP5 📉</div>
+    <table class="sum-table">
+      <thead><tr>
+        <th style="width:28px">#</th>
+        <th style="text-align:left;padding-left:10px">종목</th>
+        <th>거래대금</th>
+      </tr></thead>
+      <tbody><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">1</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">삼성전자</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">005930</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 5,655억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">2</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">SK스퀘어</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">402340</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 1,692억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">3</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">삼성전자우</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">005935</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 1,286억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">4</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">삼성전기</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">009150</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 1,227억원
+              </td>
+            </tr><tr>
+              <td style="font-weight:900;color:#1a1a2e;width:28px">5</td>
+              <td style="text-align:left;padding-left:10px">
+                <span style="font-weight:700">현대차</span>
+                <span style="color:#888;font-size:11px;margin-left:4px">005380</span>
+              </td>
+              <td style="font-family:monospace;color:#2471a3;font-weight:700;white-space:nowrap">
+                ▼ 1,059억원
+              </td>
+            </tr></tbody>
+    </table>
+  </div>
+</div>
+<p style="font-size:11px;color:#888;margin-top:6px">KRX 공식 데이터 기준 · 당일 순매수/매도 거래대금</p>
+</div>
+
+<!-- ③ 전체 요약표 모음 -->
+<div class="sec">
+  <div class="sec-title">📋 종목 추천 요약표</div>
+
+  <!-- 안정 대장주 요약 -->
+  <div class="summary-block">
+    <div class="summary-block-title" style="color:#16a085">🟢 안정 대장주 TOP 5 <span class="model-badge badge-stable">시총 상위 · 추세건전성+리스크조정</span></div>
+    <div style="overflow-x:auto">
+    <table class="sum-table">
+      <thead><tr>
+        <th>#</th>
+        <th style="text-align:left;padding-left:14px">종목명</th>
+        <th>업종</th><th>현재가</th><th>주간</th><th>12주</th>
+        <th>RSI</th><th>거래량</th><th>매수가</th><th>손절가</th><th>목표①</th><th>목표②</th><th>접근</th>
+      </tr></thead>
+      <tbody><tr>
+      <td style="font-weight:900;color:#16a085;font-size:15px">S1</td>
+      <td class="sn">현대그린푸드<br><small style="color:#aaa;font-weight:400">453340 · KOSPI</small></td>
+      <td style="font-size:11px">유통/소비재</td>
+      <td class="mono">18,320</td>
+      <td><span style="color:#e74c3c;font-weight:700">+1.0%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+13.1%</span></td>
+      <td><span class="rsi-ok">49.6</span></td>
+      <td style="color:#e74c3c;font-weight:700">0.83배</td>
+      <td class="mono" style="font-weight:800">18,410</td>
+      <td class="mono" style="color:#2980b9">17,160</td>
+      <td class="mono" style="color:#e74c3c">20,280</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">21,540</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#1abc9c;font-size:15px">S2</td>
+      <td class="sn">LG생활건강<br><small style="color:#aaa;font-weight:400">051900 · KOSPI</small></td>
+      <td style="font-size:11px">화학</td>
+      <td class="mono">263,000</td>
+      <td><span style="color:#e74c3c;font-weight:700">+7.8%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+3.3%</span></td>
+      <td><span class="rsi-ok">55.5</span></td>
+      <td style="color:#e74c3c;font-weight:700">1.27배</td>
+      <td class="mono" style="font-weight:800">264,320</td>
+      <td class="mono" style="color:#2980b9">241,710</td>
+      <td class="mono" style="color:#e74c3c">298,240</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">320,840</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#27ae60;font-size:15px">S3</td>
+      <td class="sn">메리츠금융지주<br><small style="color:#aaa;font-weight:400">138040 · KOSPI</small></td>
+      <td style="font-size:11px">금융/보험</td>
+      <td class="mono">117,600</td>
+      <td><span style="color:#e74c3c;font-weight:700">+2.8%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+3.2%</span></td>
+      <td><span class="rsi-ok">55.0</span></td>
+      <td style="color:#e74c3c;font-weight:700">1.1배</td>
+      <td class="mono" style="font-weight:800">118,190</td>
+      <td class="mono" style="color:#2980b9">109,380</td>
+      <td class="mono" style="color:#e74c3c">131,400</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">140,220</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#2ecc71;font-size:15px">S4</td>
+      <td class="sn"><br><small style="color:#aaa;font-weight:400"> · </small></td>
+      <td style="font-size:11px"></td>
+      <td class="mono"></td>
+      <td><span style="color:#aaa">-</span></td>
+      <td><span style="color:#aaa">-</span></td>
+      <td><span class="rsi-ok"></span></td>
+      <td style="color:#e74c3c;font-weight:700">배</td>
+      <td class="mono" style="font-weight:800">-</td>
+      <td class="mono" style="color:#2980b9">-</td>
+      <td class="mono" style="color:#e74c3c">-</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">-</td>
+      <td>⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#00b4d8;font-size:15px">S5</td>
+      <td class="sn"><br><small style="color:#aaa;font-weight:400"> · </small></td>
+      <td style="font-size:11px"></td>
+      <td class="mono"></td>
+      <td><span style="color:#aaa">-</span></td>
+      <td><span style="color:#aaa">-</span></td>
+      <td><span class="rsi-ok"></span></td>
+      <td style="color:#e74c3c;font-weight:700">배</td>
+      <td class="mono" style="font-weight:800">-</td>
+      <td class="mono" style="color:#2980b9">-</td>
+      <td class="mono" style="color:#e74c3c">-</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">-</td>
+      <td>⭐⭐⭐⭐</td>
+    </tr></tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- 단기 모멘텀 요약 -->
+  <div class="summary-block">
+    <div class="summary-block-title" style="color:#e65100">🔴 단기 모멘텀 TOP 5 <span class="model-badge badge-mom">전 종목 · 고변동성 주의</span></div>
+    <div style="overflow-x:auto">
+    <table class="sum-table">
+      <thead><tr>
+        <th>#</th>
+        <th style="text-align:left;padding-left:14px">종목명</th>
+        <th>업종</th><th>현재가</th><th>주간</th><th>12주</th>
+        <th>RSI</th><th>거래량</th><th>매수가</th><th>손절가</th><th>목표①</th><th>목표②</th><th>접근</th>
+      </tr></thead>
+      <tbody><tr>
+      <td style="font-weight:900;color:#f6a623;font-size:15px">M1</td>
+      <td class="sn">삼성바이오로직스<br><small style="color:#aaa;font-weight:400">207940 · KOSPI</small></td>
+      <td style="font-size:11px">바이오/제약</td>
+      <td class="mono">1,479,000</td>
+      <td><span style="color:#e74c3c;font-weight:700">+7.8%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+0.4%</span></td>
+      <td><span class="rsi-ok">60.7</span></td>
+      <td style="color:#e74c3c;font-weight:700">1.82배</td>
+      <td class="mono" style="font-weight:800">1,486,390</td>
+      <td class="mono" style="color:#2980b9">1,342,440</td>
+      <td class="mono" style="color:#e74c3c">1,702,320</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">1,846,260</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#9aa5ae;font-size:15px">M2</td>
+      <td class="sn">동양생명<br><small style="color:#aaa;font-weight:400">082640 · KOSPI</small></td>
+      <td style="font-size:11px">금융/보험</td>
+      <td class="mono">8,100</td>
+      <td><span style="color:#e74c3c;font-weight:700">+6.6%</span></td>
+      <td><span style="color:#2980b9;font-weight:700">-2.1%</span></td>
+      <td><span class="rsi-ok">60.6</span></td>
+      <td style="color:#e74c3c;font-weight:700">1.51배</td>
+      <td class="mono" style="font-weight:800">8,140</td>
+      <td class="mono" style="color:#2980b9">7,300</td>
+      <td class="mono" style="color:#e74c3c">9,400</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">10,240</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#c8954a;font-size:15px">M3</td>
+      <td class="sn">달바글로벌<br><small style="color:#aaa;font-weight:400">483650 · KOSPI</small></td>
+      <td style="font-size:11px">화학</td>
+      <td class="mono">265,000</td>
+      <td><span style="color:#e74c3c;font-weight:700">+19.4%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+11.1%</span></td>
+      <td><span class="rsi-warn">69.0</span></td>
+      <td style="color:#e74c3c;font-weight:700">1.33배</td>
+      <td class="mono" style="font-weight:800">266,320</td>
+      <td class="mono" style="color:#2980b9">221,170</td>
+      <td class="mono" style="color:#e74c3c">334,040</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">379,200</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#5b6bd5;font-size:15px">M4</td>
+      <td class="sn"><br><small style="color:#aaa;font-weight:400"> · </small></td>
+      <td style="font-size:11px"></td>
+      <td class="mono"></td>
+      <td><span style="color:#aaa">-</span></td>
+      <td><span style="color:#aaa">-</span></td>
+      <td><span class="rsi-ok"></span></td>
+      <td style="color:#e74c3c;font-weight:700">배</td>
+      <td class="mono" style="font-weight:800">-</td>
+      <td class="mono" style="color:#2980b9">-</td>
+      <td class="mono" style="color:#e74c3c">-</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">-</td>
+      <td>⭐⭐⭐<br><small style="color:#e65100">변동성↑</small></td>
+    </tr><tr>
+      <td style="font-weight:900;color:#e85d9a;font-size:15px">M5</td>
+      <td class="sn"><br><small style="color:#aaa;font-weight:400"> · </small></td>
+      <td style="font-size:11px"></td>
+      <td class="mono"></td>
+      <td><span style="color:#aaa">-</span></td>
+      <td><span style="color:#aaa">-</span></td>
+      <td><span class="rsi-ok"></span></td>
+      <td style="color:#e74c3c;font-weight:700">배</td>
+      <td class="mono" style="font-weight:800">-</td>
+      <td class="mono" style="color:#2980b9">-</td>
+      <td class="mono" style="color:#e74c3c">-</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">-</td>
+      <td>⭐⭐⭐<br><small style="color:#e65100">변동성↑</small></td>
+    </tr></tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- ETF 요약 -->
+  <div class="summary-block">
+    <div class="summary-block-title" style="color:#1565c0">🔵 ETF 추천 TOP 5 <span class="model-badge badge-etf">퀀트 선정 · 레버리지·인버스 제외</span></div>
+    <div style="overflow-x:auto">
+    <table class="sum-table">
+      <thead><tr>
+        <th>#</th>
+        <th style="text-align:left;padding-left:14px">ETF명</th>
+        <th>테마</th><th>현재가</th><th>주간</th><th>12주</th>
+        <th>RSI</th><th>거래량</th><th>매수가</th><th>손절가</th><th>목표①</th><th>목표②</th><th>접근</th>
+      </tr></thead>
+      <tbody><tr>
+      <td style="font-weight:900;color:#2980b9;font-size:15px">E1</td>
+      <td class="sn">TIGER 미국배당다우존스타겟커버드콜2호<br><small style="color:#aaa;font-weight:400">458760 · KOSPI</small></td>
+      <td style="font-size:11px">미국지수</td>
+      <td class="mono">11,665</td>
+      <td><span style="color:#e74c3c;font-weight:700">+1.7%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+7.0%</span></td>
+      <td><span class="rsi-ok">57.5</span></td>
+      <td style="color:#e74c3c;font-weight:700">1.08배</td>
+      <td class="mono" style="font-weight:800">11,720</td>
+      <td class="mono" style="color:#2980b9">11,450</td>
+      <td class="mono" style="color:#e74c3c">12,250</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">12,600</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#3498db;font-size:15px">E2</td>
+      <td class="sn">KODEX MSCI선진국<br><small style="color:#aaa;font-weight:400">251350 · KOSPI</small></td>
+      <td style="font-size:11px">글로벌</td>
+      <td class="mono">39,775</td>
+      <td><span style="color:#2980b9;font-weight:700">-3.0%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+2.1%</span></td>
+      <td><span class="rsi-warn">30.1</span></td>
+      <td style="color:#e74c3c;font-weight:700">0.76배</td>
+      <td class="mono" style="font-weight:800">39,970</td>
+      <td class="mono" style="color:#2980b9">39,300</td>
+      <td class="mono" style="color:#e74c3c">41,770</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">42,970</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#1a6fa8;font-size:15px">E3</td>
+      <td class="sn">KODEX 미국배당커버드콜액티브<br><small style="color:#aaa;font-weight:400">441640 · KOSPI</small></td>
+      <td style="font-size:11px">커버드콜</td>
+      <td class="mono">12,930</td>
+      <td><span style="color:#2980b9;font-weight:700">-1.4%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+2.6%</span></td>
+      <td><span class="rsi-warn">30.1</span></td>
+      <td style="color:#e74c3c;font-weight:700">0.95배</td>
+      <td class="mono" style="font-weight:800">12,990</td>
+      <td class="mono" style="color:#2980b9">12,680</td>
+      <td class="mono" style="color:#e74c3c">13,570</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">13,960</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#5dade2;font-size:15px">E4</td>
+      <td class="sn">KODEX 미국배당다우존스<br><small style="color:#aaa;font-weight:400">489250 · KOSPI</small></td>
+      <td style="font-size:11px">미국지수</td>
+      <td class="mono">13,465</td>
+      <td><span style="color:#e74c3c;font-weight:700">+1.4%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+6.8%</span></td>
+      <td><span class="rsi-ok">53.7</span></td>
+      <td style="color:#e74c3c;font-weight:700">0.93배</td>
+      <td class="mono" style="font-weight:800">13,530</td>
+      <td class="mono" style="color:#2980b9">13,180</td>
+      <td class="mono" style="color:#e74c3c">14,140</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">14,540</td>
+      <td>⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#0077be;font-size:15px">E5</td>
+      <td class="sn">ACE 미국배당다우존스<br><small style="color:#aaa;font-weight:400">402970 · KOSPI</small></td>
+      <td style="font-size:11px">미국지수</td>
+      <td class="mono">15,875</td>
+      <td><span style="color:#e74c3c;font-weight:700">+1.3%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+6.8%</span></td>
+      <td><span class="rsi-ok">54.5</span></td>
+      <td style="color:#e74c3c;font-weight:700">1.05배</td>
+      <td class="mono" style="font-weight:800">15,950</td>
+      <td class="mono" style="color:#2980b9">15,540</td>
+      <td class="mono" style="color:#e74c3c">16,670</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">17,150</td>
+      <td>⭐⭐⭐⭐</td>
+    </tr></tbody>
+    </table>
+    </div>
+  </div>
+
+  <!-- 기관연동 한국 종목 요약 -->
+  <div class="summary-block">
+    <div class="summary-block-title" style="color:#7b1fa2">🟣 기관연동 한국 종목 TOP 5 <span class="model-badge badge-inst">글로벌 기관 섹터 신호 + 기술적 지표</span></div>
+    <div style="overflow-x:auto">
+    <table class="sum-table">
+      <thead><tr>
+        <th>#</th>
+        <th style="text-align:left;padding-left:14px">종목명</th>
+        <th>업종</th><th>현재가</th><th>주간</th><th>12주</th>
+        <th>RSI</th><th>거래량</th><th>매수가</th><th>손절가</th><th>목표①</th><th>목표②</th><th>접근</th>
+      </tr></thead>
+      <tbody><tr>
+      <td style="font-weight:900;color:#8e44ad;font-size:15px">I1</td>
+      <td class="sn">메리츠금융지주<br><small style="color:#aaa;font-weight:400">138040 · KOSPI</small></td>
+      <td style="font-size:11px">금융/보험</td>
+      <td class="mono">117,600</td>
+      <td><span style="color:#e74c3c;font-weight:700">+2.8%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+3.2%</span></td>
+      <td><span class="rsi-ok">55.0</span></td>
+      <td style="color:#e74c3c;font-weight:700">1.1배</td>
+      <td class="mono" style="font-weight:800">118,190</td>
+      <td class="mono" style="color:#2980b9">109,380</td>
+      <td class="mono" style="color:#e74c3c">131,400</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">140,220</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#9b59b6;font-size:15px">I2</td>
+      <td class="sn">현대그린푸드<br><small style="color:#aaa;font-weight:400">453340 · KOSPI</small></td>
+      <td style="font-size:11px">유통/소비재</td>
+      <td class="mono">18,320</td>
+      <td><span style="color:#e74c3c;font-weight:700">+1.0%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+13.1%</span></td>
+      <td><span class="rsi-ok">49.6</span></td>
+      <td style="color:#e74c3c;font-weight:700">0.83배</td>
+      <td class="mono" style="font-weight:800">18,410</td>
+      <td class="mono" style="color:#2980b9">17,160</td>
+      <td class="mono" style="color:#e74c3c">20,280</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">21,540</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#7d3c98;font-size:15px">I3</td>
+      <td class="sn">LG생활건강<br><small style="color:#aaa;font-weight:400">051900 · KOSPI</small></td>
+      <td style="font-size:11px">화학</td>
+      <td class="mono">263,000</td>
+      <td><span style="color:#e74c3c;font-weight:700">+7.8%</span></td>
+      <td><span style="color:#e74c3c;font-weight:700">+3.3%</span></td>
+      <td><span class="rsi-ok">55.5</span></td>
+      <td style="color:#e74c3c;font-weight:700">1.27배</td>
+      <td class="mono" style="font-weight:800">264,320</td>
+      <td class="mono" style="color:#2980b9">241,710</td>
+      <td class="mono" style="color:#e74c3c">298,240</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">320,840</td>
+      <td>⭐⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#a569bd;font-size:15px">I4</td>
+      <td class="sn"><br><small style="color:#aaa;font-weight:400"> · </small></td>
+      <td style="font-size:11px"></td>
+      <td class="mono"></td>
+      <td><span style="color:#aaa">-</span></td>
+      <td><span style="color:#aaa">-</span></td>
+      <td><span class="rsi-ok"></span></td>
+      <td style="color:#e74c3c;font-weight:700">배</td>
+      <td class="mono" style="font-weight:800">-</td>
+      <td class="mono" style="color:#2980b9">-</td>
+      <td class="mono" style="color:#e74c3c">-</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">-</td>
+      <td>⭐⭐⭐⭐</td>
+    </tr><tr>
+      <td style="font-weight:900;color:#bb8fce;font-size:15px">I5</td>
+      <td class="sn"><br><small style="color:#aaa;font-weight:400"> · </small></td>
+      <td style="font-size:11px"></td>
+      <td class="mono"></td>
+      <td><span style="color:#aaa">-</span></td>
+      <td><span style="color:#aaa">-</span></td>
+      <td><span class="rsi-ok"></span></td>
+      <td style="color:#e74c3c;font-weight:700">배</td>
+      <td class="mono" style="font-weight:800">-</td>
+      <td class="mono" style="color:#2980b9">-</td>
+      <td class="mono" style="color:#e74c3c">-</td>
+      <td class="mono" style="color:#c0392b;font-weight:700">-</td>
+      <td>⭐⭐⭐⭐</td>
+    </tr></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ④ 글로벌 기관 포트폴리오 동향 -->
+<div class="sec">
+  <div class="sec-title sec-title-global">🌍 글로벌 기관투자자 포트폴리오 동향 <span class="model-badge badge-global">SEC EDGAR 13F 공시 · 분기 기준</span></div>
+  <div class="model-intro">
+    📌 <b>데이터 출처</b>: 미국 SEC EDGAR 13F-HR 분기 공시 (AUM $100M 이상 기관 의무 보고)<br>
+    ✅ <b>활용 방법</b>: 글로벌 스마트머니의 섹터 집중도를 확인하고, 동일 방향성의 한국 종목(기관연동 모델)에 가중치 부여
+  </div>
+  <div style="overflow-x:auto">
+<table class="sum-table">
+  <thead><tr>
+    <th style="text-align:left;padding-left:14px">기관명</th>
+    <th>공시일</th><th>기준분기</th>
+    <th>섹터①</th><th>섹터②</th><th>섹터③</th>
+    <th>TOP보유①</th><th>TOP보유②</th><th>TOP보유③</th>
+    <th>보유수</th>
+  </tr></thead>
+  <tbody><tr>
+          <td class="sn" style="font-size:13px;font-weight:800">블랙록</td>
+          <td style="font-size:11px;color:#777">2024-08-13</td>
+          <td style="font-size:11px;color:#555;font-weight:600">2024-06-30</td>
+          <td style="text-align:center"><span style="background:#78909c18;color:#78909c;border:1px solid #78909c44;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Other<br><b>44%</b></span></td><td style="text-align:center"><span style="background:#1565c018;color:#1565c0;border:1px solid #1565c044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Technology<br><b>29%</b></span></td><td style="text-align:center"><span style="background:#2e7d3218;color:#2e7d32;border:1px solid #2e7d3244;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Healthcare<br><b>7%</b></span></td>
+          <td style="font-size:11px;font-weight:600;max-width:100px">MICROSOFT CORP</td><td style="font-size:11px;font-weight:600;max-width:100px">NVIDIA CORPORATION</td><td style="font-size:11px;font-weight:600;max-width:100px">APPLE INC</td>
+          <td style="font-size:11px;color:#999;text-align:right">48,159종목</td>
+        </tr><tr>
+          <td class="sn" style="font-size:13px;font-weight:800">뱅가드</td>
+          <td style="font-size:11px;color:#777">2026-01-29</td>
+          <td style="font-size:11px;color:#555;font-weight:600">2025-12-31</td>
+          <td style="text-align:center"><span style="background:#78909c18;color:#78909c;border:1px solid #78909c44;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Other<br><b>39%</b></span></td><td style="text-align:center"><span style="background:#1565c018;color:#1565c0;border:1px solid #1565c044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Technology<br><b>33%</b></span></td><td style="text-align:center"><span style="background:#e6510018;color:#e65100;border:1px solid #e6510044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Financials<br><b>8%</b></span></td>
+          <td style="font-size:11px;font-weight:600;max-width:100px">NVIDIA CORPORATION</td><td style="font-size:11px;font-weight:600;max-width:100px">APPLE INC</td><td style="font-size:11px;font-weight:600;max-width:100px">MICROSOFT CORP</td>
+          <td style="font-size:11px;color:#999;text-align:right">17,686종목</td>
+        </tr><tr>
+          <td class="sn" style="font-size:13px;font-weight:800">피델리티</td>
+          <td style="font-size:11px;color:#777">2026-05-15</td>
+          <td style="font-size:11px;color:#555;font-weight:600">2026-03-31</td>
+          <td style="text-align:center"><span style="background:#78909c18;color:#78909c;border:1px solid #78909c44;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Other<br><b>40%</b></span></td><td style="text-align:center"><span style="background:#1565c018;color:#1565c0;border:1px solid #1565c044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Technology<br><b>38%</b></span></td><td style="text-align:center"><span style="background:#e6510018;color:#e65100;border:1px solid #e6510044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Financials<br><b>6%</b></span></td>
+          <td style="font-size:11px;font-weight:600;max-width:100px">NVIDIA CORPORATION</td><td style="font-size:11px;font-weight:600;max-width:100px">AMAZON COM INC</td><td style="font-size:11px;font-weight:600;max-width:100px">APPLE INC</td>
+          <td style="font-size:11px;color:#999;text-align:right">13,275종목</td>
+        </tr><tr>
+          <td class="sn" style="font-size:13px;font-weight:800">스테이트스트리트</td>
+          <td style="font-size:11px;color:#777">2026-05-15</td>
+          <td style="font-size:11px;color:#555;font-weight:600">2026-03-31</td>
+          <td style="text-align:center"><span style="background:#78909c18;color:#78909c;border:1px solid #78909c44;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Other<br><b>37%</b></span></td><td style="text-align:center"><span style="background:#1565c018;color:#1565c0;border:1px solid #1565c044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Technology<br><b>31%</b></span></td><td style="text-align:center"><span style="background:#e6510018;color:#e65100;border:1px solid #e6510044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Financials<br><b>8%</b></span></td>
+          <td style="font-size:11px;font-weight:600;max-width:100px">NVIDIA CORPORATION</td><td style="font-size:11px;font-weight:600;max-width:100px">APPLE INC</td><td style="font-size:11px;font-weight:600;max-width:100px">MICROSOFT CORP</td>
+          <td style="font-size:11px;color:#999;text-align:right">4,269종목</td>
+        </tr><tr>
+          <td class="sn" style="font-size:13px;font-weight:800">JP모건자산운용</td>
+          <td style="font-size:11px;color:#777">2026-05-13</td>
+          <td style="font-size:11px;color:#555;font-weight:600">2026-03-31</td>
+          <td style="text-align:center"><span style="background:#78909c18;color:#78909c;border:1px solid #78909c44;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Other<br><b>88%</b></span></td><td style="text-align:center"><span style="background:#2e7d3218;color:#2e7d32;border:1px solid #2e7d3244;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Healthcare<br><b>4%</b></span></td><td style="text-align:center"><span style="background:#1565c018;color:#1565c0;border:1px solid #1565c044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Technology<br><b>3%</b></span></td>
+          <td style="font-size:11px;font-weight:600;max-width:100px">ISHARES TR</td><td style="font-size:11px;font-weight:600;max-width:100px">STATE STR SPDR S&P 500 ET</td><td style="font-size:11px;font-weight:600;max-width:100px">ISHARES TR</td>
+          <td style="font-size:11px;color:#999;text-align:right">378종목</td>
+        </tr><tr>
+          <td class="sn" style="font-size:13px;font-weight:800">캐피탈그룹</td>
+          <td style="font-size:11px;color:#777">2026-05-13</td>
+          <td style="font-size:11px;color:#555;font-weight:600">2026-03-31</td>
+          <td style="text-align:center"><span style="background:#1565c018;color:#1565c0;border:1px solid #1565c044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Technology<br><b>35%</b></span></td><td style="text-align:center"><span style="background:#78909c18;color:#78909c;border:1px solid #78909c44;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Other<br><b>34%</b></span></td><td style="text-align:center"><span style="background:#2e7d3218;color:#2e7d32;border:1px solid #2e7d3244;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Healthcare<br><b>9%</b></span></td>
+          <td style="font-size:11px;font-weight:600;max-width:100px">BROADCOM INC</td><td style="font-size:11px;font-weight:600;max-width:100px">MICROSOFT CORP</td><td style="font-size:11px;font-weight:600;max-width:100px">NVIDIA CORPORATION</td>
+          <td style="font-size:11px;color:#999;text-align:right">459종목</td>
+        </tr><tr>
+          <td class="sn" style="font-size:13px;font-weight:800">버크셔해서웨이</td>
+          <td style="font-size:11px;color:#777">2026-05-15</td>
+          <td style="font-size:11px;color:#555;font-weight:600">2026-03-31</td>
+          <td style="text-align:center"><span style="background:#e6510018;color:#e65100;border:1px solid #e6510044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Financials<br><b>32%</b></span></td><td style="text-align:center"><span style="background:#1565c018;color:#1565c0;border:1px solid #1565c044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Technology<br><b>28%</b></span></td><td style="text-align:center"><span style="background:#78909c18;color:#78909c;border:1px solid #78909c44;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Other<br><b>22%</b></span></td>
+          <td style="font-size:11px;font-weight:600;max-width:100px">AMERICAN EXPRESS CO</td><td style="font-size:11px;font-weight:600;max-width:100px">COCA COLA CO</td><td style="font-size:11px;font-weight:600;max-width:100px">APPLE INC</td>
+          <td style="font-size:11px;color:#999;text-align:right">90종목</td>
+        </tr><tr>
+          <td class="sn" style="font-size:13px;font-weight:800">T.로우프라이스</td>
+          <td style="font-size:11px;color:#777">2026-05-15</td>
+          <td style="font-size:11px;color:#555;font-weight:600">2026-03-31</td>
+          <td style="text-align:center"><span style="background:#78909c18;color:#78909c;border:1px solid #78909c44;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Other<br><b>38%</b></span></td><td style="text-align:center"><span style="background:#1565c018;color:#1565c0;border:1px solid #1565c044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Technology<br><b>36%</b></span></td><td style="text-align:center"><span style="background:#e6510018;color:#e65100;border:1px solid #e6510044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Financials<br><b>7%</b></span></td>
+          <td style="font-size:11px;font-weight:600;max-width:100px">NVIDIA CORPORATION</td><td style="font-size:11px;font-weight:600;max-width:100px">APPLE INC</td><td style="font-size:11px;font-weight:600;max-width:100px">MICROSOFT CORP</td>
+          <td style="font-size:11px;color:#999;text-align:right">4,547종목</td>
+        </tr><tr>
+          <td class="sn" style="font-size:13px;font-weight:800">웰링턴매니지먼트</td>
+          <td style="font-size:11px;color:#777">2026-05-15</td>
+          <td style="font-size:11px;color:#555;font-weight:600">2026-03-31</td>
+          <td style="text-align:center"><span style="background:#78909c18;color:#78909c;border:1px solid #78909c44;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Other<br><b>47%</b></span></td><td style="text-align:center"><span style="background:#1565c018;color:#1565c0;border:1px solid #1565c044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Technology<br><b>25%</b></span></td><td style="text-align:center"><span style="background:#2e7d3218;color:#2e7d32;border:1px solid #2e7d3244;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Healthcare<br><b>11%</b></span></td>
+          <td style="font-size:11px;font-weight:600;max-width:100px">NVIDIA CORPORATION</td><td style="font-size:11px;font-weight:600;max-width:100px">MICROSOFT CORP</td><td style="font-size:11px;font-weight:600;max-width:100px">APPLE INC</td>
+          <td style="font-size:11px;color:#999;text-align:right">7,458종목</td>
+        </tr><tr>
+          <td class="sn" style="font-size:13px;font-weight:800">골드만삭스</td>
+          <td style="font-size:11px;color:#777">2026-05-15</td>
+          <td style="font-size:11px;color:#555;font-weight:600">2026-03-31</td>
+          <td style="text-align:center"><span style="background:#78909c18;color:#78909c;border:1px solid #78909c44;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Other<br><b>54%</b></span></td><td style="text-align:center"><span style="background:#1565c018;color:#1565c0;border:1px solid #1565c044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Technology<br><b>24%</b></span></td><td style="text-align:center"><span style="background:#e6510018;color:#e65100;border:1px solid #e6510044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Financials<br><b>6%</b></span></td>
+          <td style="font-size:11px;font-weight:600;max-width:100px">NVIDIA CORPORATION</td><td style="font-size:11px;font-weight:600;max-width:100px">APPLE INC</td><td style="font-size:11px;font-weight:600;max-width:100px">STATE STR SPDR S&P 500 ET</td>
+          <td style="font-size:11px;color:#999;text-align:right">13,579종목</td>
+        </tr><tr>
+          <td class="sn" style="font-size:13px;font-weight:800">한국투자공사(KIC)</td>
+          <td style="font-size:11px;color:#777">2026-05-13</td>
+          <td style="font-size:11px;color:#555;font-weight:600">2026-03-31</td>
+          <td style="text-align:center"><span style="background:#78909c18;color:#78909c;border:1px solid #78909c44;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Other<br><b>39%</b></span></td><td style="text-align:center"><span style="background:#1565c018;color:#1565c0;border:1px solid #1565c044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Technology<br><b>32%</b></span></td><td style="text-align:center"><span style="background:#e6510018;color:#e65100;border:1px solid #e6510044;padding:2px 7px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap">Financials<br><b>7%</b></span></td>
+          <td style="font-size:11px;font-weight:600;max-width:100px">NVIDIA CORPORATION</td><td style="font-size:11px;font-weight:600;max-width:100px">APPLE INC</td><td style="font-size:11px;font-weight:600;max-width:100px">ISHARES TR</td>
+          <td style="font-size:11px;color:#999;text-align:right">688종목</td>
+        </tr></tbody>
+</table>
+</div>
+</div>
+
+<!-- ④-b 글로벌 기관 투자 변화 분석 -->
+<div class="sec">
+  <div class="sec-title sec-title-global">📊 글로벌 기관 투자 변화 분석 <span class="model-badge badge-global">전분기 대비 섹터 비중 변화</span></div>
+  <div class="model-intro">
+    📌 <b>데이터 출처</b>: SEC EDGAR 13F 분기 공시 — 신규 분기 데이터 갱신 시 자동 비교<br>
+    ✅ <b>활용 방법</b>: 섹터 비중을 늘린 기관은 해당 업종에 장기 베팅 중 — 한국 동일 업종 기관연동 종목과 연계 분석
+  </div>
+  <p style="color:#aaa;text-align:center;padding:24px">섹터 변화 데이터 없음 — 분기 공시 갱신 후 표시됩니다</p>
+</div>
+
+<div class="divider"></div>
+
+<!-- ⑤ 모델별 상세 카드 -->
+
+<!-- 안정 대장주 상세 -->
+<div class="sec">
+  <div class="sec-title sec-title-green">🟢 안정 대장주 TOP 5 — 상세 분석 <span class="model-badge badge-stable">시총 상위 · 추세건전성+리스크조정</span></div>
+  <div class="model-intro">
+    📌 <b>선정 기준</b>: 시총 상위 350위 이내(업종별 대장주) 중 ①MA 정배열+이격률(35%) ②변동성 대비 수익률(30%) ③RSI·MACD·거래량 안정성(25%) ④12주 모멘텀(10%) 종합 평가 + 섹터당 최대 2종목 분산 선발<br>
+    ✅ <b>특징</b>: 손절폭 8~12%, 일일 변동성 ≤5%, 안정적 중장기 투자에 적합<br>📎 <b>TOP5 평균 상관계수</b>: 0.35 — 분산 우수 (최근 60일 일별 수익률 기준)
+  </div>
+  
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#16a085">S1</div>
+    <div class="card-title-wrap">
+      <div class="card-name">현대그린푸드</div>
+      <div class="card-meta">453340 &middot; KOSPI &middot; <span class="sector-tag">유통/소비재</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">18,320원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#e74c3c;font-weight:700">+1.0%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>MA20·MA60 <b>정배열</b> — 중장기 상승추세 확립</li><li>MA20 대비 <b>+1.4%</b> — 과열 없는 이상적 진입 구간</li><li>RSI <b>49.6</b> — 과열·과매도 없는 최적 매수 구간</li><li>4주 수익률 <b>+10.6%</b> — 과열 없는 안정적 상승세</li><li>MACD 히스토그램 <b>+13.3</b> — 상승 모멘텀 지속</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok">49.6</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">13.3</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">0.83배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#e74c3c;font-weight:700">+10.6%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+13.1%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>18,061원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>17,586원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">711원</span></div>
+          <div class="chip"><span class="cl">PER</span><span style="font-weight:700">6.9배</span></div><div class="chip"><span class="cl">PBR</span><span style="font-weight:700">0.82배</span></div><div class="chip"><span class="cl">배당수익률</span><span style="color:#16a085;font-weight:700">3.69%</span></div><div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">80주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">60.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">18,410원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">17,160원</div><div class="ts">-6.8%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">20,280원</div><div class="ts">+10.2%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">21,540원</div><div class="ts">+17.0%</div></div>
+    </div>
+    <div class="caution">⚠ 일일변동 3.9% — 분할 매수 권장</div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#1abc9c">S2</div>
+    <div class="card-title-wrap">
+      <div class="card-name">LG생활건강</div>
+      <div class="card-meta">051900 &middot; KOSPI &middot; <span class="sector-tag">화학</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">263,000원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#e74c3c;font-weight:700">+7.8%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>현재가가 MA60(248,458원) 상회 — 중기 추세 유효</li><li>MA20 대비 <b>+6.2%</b> — 과열 없는 이상적 진입 구간</li><li>RSI <b>55.5</b> — 과열·과매도 없는 최적 매수 구간</li><li>4주 수익률 <b>+14.6%</b> — 과열 없는 안정적 상승세</li><li>MACD 히스토그램 <b>+1915.3</b> — 상승 모멘텀 지속</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok">55.5</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">1915.3</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">1.27배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#e74c3c;font-weight:700">+14.6%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+3.3%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>247,600원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>248,458원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">10,643원</span></div>
+          <div class="chip"><span class="cl">PBR</span><span style="font-weight:700">0.81배</span></div><div class="chip"><span class="cl">배당수익률</span><span style="color:#16a085;font-weight:700">0.76%</span></div><div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">4주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">5.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">264,320원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">241,710원</div><div class="ts">-8.6%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">298,240원</div><div class="ts">+12.8%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">320,840원</div><div class="ts">+21.4%</div></div>
+    </div>
+    <div class="caution">⚠ 일일변동 4.0% — 분할 매수 권장</div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#27ae60">S3</div>
+    <div class="card-title-wrap">
+      <div class="card-name">메리츠금융지주</div>
+      <div class="card-meta">138040 &middot; KOSPI &middot; <span class="sector-tag">금융/보험</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">117,600원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#e74c3c;font-weight:700">+2.8%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>MA20·MA60 <b>정배열</b> — 중장기 상승추세 확립</li><li>MA20 대비 <b>+2.1%</b> — 과열 없는 이상적 진입 구간</li><li>RSI <b>55.0</b> — 과열·과매도 없는 최적 매수 구간</li><li>4주 수익률 <b>+11.4%</b> — 과열 없는 안정적 상승세</li><li>MACD 히스토그램 <b>+407.6</b> — 상승 모멘텀 지속</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok">55.0</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">407.6</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">1.1배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#e74c3c;font-weight:700">+11.4%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+3.2%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>115,135원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>110,220원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">5,629원</span></div>
+          <div class="chip"><span class="cl">PER</span><span style="font-weight:700">9.11배</span></div><div class="chip"><span class="cl">PBR</span><span style="font-weight:700">1.92배</span></div><div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">11주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">35.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">118,190원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">109,380원</div><div class="ts">-7.5%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">131,400원</div><div class="ts">+11.2%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">140,220원</div><div class="ts">+18.6%</div></div>
+    </div>
+    <div class="caution">⚠ 일일변동 4.8% — 분할 매수 권장</div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#2ecc71">S4</div>
+    <div class="card-title-wrap">
+      <div class="card-name"></div>
+      <div class="card-meta"> &middot;  &middot; <span class="sector-tag"></span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">0원</div>
+      <div style="font-size:13px;font-weight:700">주간 %</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>퀀트 종합점수 상위 선정</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok"></span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700"></span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#aaa">-</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#aaa">-</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>-원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>-원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">0원</span></div>
+          
+          
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">-원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">-원</div><div class="ts">%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">-원</div><div class="ts">+%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">-원</div><div class="ts">+%</div></div>
+    </div>
+    
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#00b4d8">S5</div>
+    <div class="card-title-wrap">
+      <div class="card-name"></div>
+      <div class="card-meta"> &middot;  &middot; <span class="sector-tag"></span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">0원</div>
+      <div style="font-size:13px;font-weight:700">주간 %</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>퀀트 종합점수 상위 선정</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok"></span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700"></span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#aaa">-</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#aaa">-</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>-원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>-원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">0원</span></div>
+          
+          
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">-원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">-원</div><div class="ts">%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">-원</div><div class="ts">+%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">-원</div><div class="ts">+%</div></div>
+    </div>
+    
+  </div>
+</div>
+</div>
+
+<!-- 단기 모멘텀 상세 -->
+<div class="sec">
+  <div class="sec-title sec-title-orange">🔴 단기 모멘텀 TOP 5 — 상세 분석 <span class="model-badge badge-mom">전 종목 · 1주·4주·12주 모멘텀</span></div>
+  <div class="model-intro">
+    📌 <b>선정 기준</b>: 전 종목 대상 ①1주·4주·12주 수익률 모멘텀(35%) ②거래량(20%) ③추세(25%) ④RSI·MACD(20%) 종합 평가<br>
+    ⚠️ <b>주의</b>: 단기 급등 종목 포함, 고변동성·높은 손절폭 가능성 — 소량 분할 접근 권장<br>📎 <b>TOP5 평균 상관계수</b>: 0.25 — 분산 우수 (최근 60일 일별 수익률 기준)
+  </div>
+  
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#f6a623">M1</div>
+    <div class="card-title-wrap">
+      <div class="card-name">삼성바이오로직스</div>
+      <div class="card-meta">207940 &middot; KOSPI &middot; <span class="sector-tag">바이오/제약</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">1,479,000원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#e74c3c;font-weight:700">+7.8%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>주간 수익률 <b>+7.8%</b> — 꾸준한 상승세 유지</li><li>거래량 <b>1.82배</b> — 꾸준한 매수세 유입</li><li>RSI <b>60.7</b> — 이상적인 매수 구간, 과열 아님</li><li>현재가(1,479,000)가 MA20·MA60 모두 상회 — 완벽한 정배열</li><li>MACD 히스토그램 <b>+15814.0</b> — 상승 모멘텀 유지</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok">60.7</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">15814.0</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">1.82배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#e74c3c;font-weight:700">+6.3%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+0.4%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>1,413,100원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>1,390,866원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">78,786원</span></div>
+          <div class="chip"><span class="cl">PER</span><span style="font-weight:700">55.54배</span></div><div class="chip"><span class="cl">PBR</span><span style="font-weight:700">9.18배</span></div><div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">0주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">5.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">1,486,390원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">1,342,440원</div><div class="ts">-9.7%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">1,702,320원</div><div class="ts">+14.5%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">1,846,260원</div><div class="ts">+24.2%</div></div>
+    </div>
+    
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#9aa5ae">M2</div>
+    <div class="card-title-wrap">
+      <div class="card-name">동양생명</div>
+      <div class="card-meta">082640 &middot; KOSPI &middot; <span class="sector-tag">금융/보험</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">8,100원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#e74c3c;font-weight:700">+6.6%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>주간 수익률 <b>+6.6%</b> — 꾸준한 상승세 유지</li><li>4주 수익률 <b>+15.2%</b> — 최근 한 달 지속 상승 중</li><li>거래량 <b>1.51배</b> — 꾸준한 매수세 유입</li><li>RSI <b>60.6</b> — 이상적인 매수 구간, 과열 아님</li><li>현재가(8,100)가 MA20·MA60 모두 상회 — 완벽한 정배열</li><li>MACD 히스토그램 <b>+59.1</b> — 상승 모멘텀 유지</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok">60.6</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">59.1</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">1.51배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#e74c3c;font-weight:700">+15.2%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#2980b9;font-weight:700">-2.1%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>7,685원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>7,671원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">416원</span></div>
+          <div class="chip"><span class="cl">PER</span><span style="font-weight:700">10.15배</span></div><div class="chip"><span class="cl">PBR</span><span style="font-weight:700">0.82배</span></div><div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">119주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">35.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">8,140원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">7,300원</div><div class="ts">-10.3%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">9,400원</div><div class="ts">+15.5%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">10,240원</div><div class="ts">+25.8%</div></div>
+    </div>
+    
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#c8954a">M3</div>
+    <div class="card-title-wrap">
+      <div class="card-name">달바글로벌</div>
+      <div class="card-meta">483650 &middot; KOSPI &middot; <span class="sector-tag">화학</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">265,000원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#e74c3c;font-weight:700">+19.4%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>주간 수익률 <b>+19.4%</b> 급등 — 강한 단기 모멘텀 확인</li><li>4주 수익률 <b>+14.5%</b> — 최근 한 달 지속 상승 중</li><li>RSI <b>69.0</b> — 상승 강도 높음 (단계적 매수 권장)</li><li>현재가(265,000)가 MA20·MA60 모두 상회 — 완벽한 정배열</li><li>MACD 히스토그램 <b>+5492.0</b> — 상승 모멘텀 유지</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-warn">69.0</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">5492.0</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">1.33배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#e74c3c;font-weight:700">+14.5%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+11.1%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>224,380원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>217,605원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">21,914원</span></div>
+          <div class="chip"><span class="cl">PER</span><span style="font-weight:700">40.19배</span></div><div class="chip"><span class="cl">PBR</span><span style="font-weight:700">16.54배</span></div><div class="chip"><span class="cl">배당수익률</span><span style="color:#16a085;font-weight:700">0.99%</span></div><div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">2주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">60.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">266,320원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">221,170원</div><div class="ts">-17.0%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">334,040원</div><div class="ts">+25.4%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">379,200원</div><div class="ts">+42.4%</div></div>
+    </div>
+    <div class="caution">⚠ RSI 69.0 — 과열 경계, 절반 먼저 매수 후 조정 시 추가 매수 / ATR 21,914원 — 일변동 큼, 분할 접근 권장</div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#5b6bd5">M4</div>
+    <div class="card-title-wrap">
+      <div class="card-name"></div>
+      <div class="card-meta"> &middot;  &middot; <span class="sector-tag"></span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">0원</div>
+      <div style="font-size:13px;font-weight:700">주간 %</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>퀀트 종합점수 상위 선정</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok"></span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700"></span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#aaa">-</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#aaa">-</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>-원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>-원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">0원</span></div>
+          
+          
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">-원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">-원</div><div class="ts">%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">-원</div><div class="ts">+%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">-원</div><div class="ts">+%</div></div>
+    </div>
+    
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#e85d9a">M5</div>
+    <div class="card-title-wrap">
+      <div class="card-name"></div>
+      <div class="card-meta"> &middot;  &middot; <span class="sector-tag"></span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">0원</div>
+      <div style="font-size:13px;font-weight:700">주간 %</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>퀀트 종합점수 상위 선정</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok"></span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700"></span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#aaa">-</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#aaa">-</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>-원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>-원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">0원</span></div>
+          
+          
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">-원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">-원</div><div class="ts">%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">-원</div><div class="ts">+%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">-원</div><div class="ts">+%</div></div>
+    </div>
+    
+  </div>
+</div>
+</div>
+
+<!-- ETF 추천 상세 -->
+<div class="sec">
+  <div class="sec-title sec-title-blue">🔵 ETF 추천 TOP 5 — 상세 분석 <span class="model-badge badge-etf">퀀트 선정 · 레버리지·인버스 제외</span></div>
+  <div class="model-intro">
+    📌 <b>선정 기준</b>: 전체 ETF 대상(레버리지·인버스 제외) ①MA 추세(40%) ②변동성 대비 수익률(30%) ③RSI·MACD(20%) ④12주 모멘텀(10%) 종합 평가<br>
+    ✅ <b>특징</b>: 분산 투자 효과, 일일 변동성 ≤4%, 중장기 보유에 적합<br>📎 <b>TOP5 평균 상관계수</b>: 0.66 — 분산 양호 (최근 60일 일별 수익률 기준)
+  </div>
+  
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#2980b9">E1</div>
+    <div class="card-title-wrap">
+      <div class="card-name">TIGER 미국배당다우존스타겟커버드콜2호</div>
+      <div class="card-meta">458760 &middot; KOSPI &middot; <span class="sector-tag">미국지수</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">11,665원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#e74c3c;font-weight:700">+1.7%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>테마: <b>미국지수</b> — 구조적 성장 섹터 추종 ETF</li><li>12주 수익률 <b>+7.0%</b> — 완만한 회복세 진행 중</li><li>일일 변동성 <b>0.9%</b> — 낮은 변동성, 안정적 ETF</li><li>RSI <b>57.5</b> — 과열 없는 최적 진입 구간</li><li>MA20·MA60 <b>정배열</b> — 중장기 상승추세 확립</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok">57.5</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">14.5</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">1.08배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#2980b9;font-weight:700">-0.1%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+7.0%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>11,514원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>11,390원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">110원</span></div>
+          <div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">370주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">57.5%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">11,720원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">11,450원</div><div class="ts">-2.3%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">12,250원</div><div class="ts">+4.5%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">12,600원</div><div class="ts">+7.5%</div></div>
+    </div>
+    
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#3498db">E2</div>
+    <div class="card-title-wrap">
+      <div class="card-name">KODEX MSCI선진국</div>
+      <div class="card-meta">251350 &middot; KOSPI &middot; <span class="sector-tag">글로벌</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">39,775원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#2980b9;font-weight:700">-3.0%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>테마: <b>글로벌</b> — 구조적 성장 섹터 추종 ETF</li><li>12주 수익률 <b>+2.1%</b> — 완만한 회복세 진행 중</li><li>일일 변동성 <b>1.6%</b> — 낮은 변동성, 안정적 ETF</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-warn">30.1</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">-201.0</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">0.76배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#2980b9;font-weight:700">-6.6%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+2.1%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>41,371원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>41,308원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">653원</span></div>
+          <div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">149주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">5.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">39,970원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">39,300원</div><div class="ts">-1.7%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">41,770원</div><div class="ts">+4.5%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">42,970원</div><div class="ts">+7.5%</div></div>
+    </div>
+    
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#1a6fa8">E3</div>
+    <div class="card-title-wrap">
+      <div class="card-name">KODEX 미국배당커버드콜액티브</div>
+      <div class="card-meta">441640 &middot; KOSPI &middot; <span class="sector-tag">커버드콜</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">12,930원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#2980b9;font-weight:700">-1.4%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>테마: <b>커버드콜</b> — 구조적 성장 섹터 추종 ETF</li><li>12주 수익률 <b>+2.6%</b> — 완만한 회복세 진행 중</li><li>일일 변동성 <b>1.0%</b> — 낮은 변동성, 안정적 ETF</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-warn">30.1</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">-45.8</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">0.95배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#2980b9;font-weight:700">-4.2%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+2.6%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>13,264원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>13,183원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">123원</span></div>
+          <div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">322주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">5.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">12,990원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">12,680원</div><div class="ts">-2.4%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">13,570원</div><div class="ts">+4.5%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">13,960원</div><div class="ts">+7.5%</div></div>
+    </div>
+    
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#5dade2">E4</div>
+    <div class="card-title-wrap">
+      <div class="card-name">KODEX 미국배당다우존스</div>
+      <div class="card-meta">489250 &middot; KOSPI &middot; <span class="sector-tag">미국지수</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">13,465원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#e74c3c;font-weight:700">+1.4%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>테마: <b>미국지수</b> — 구조적 성장 섹터 추종 ETF</li><li>12주 수익률 <b>+6.8%</b> — 완만한 회복세 진행 중</li><li>일일 변동성 <b>1.1%</b> — 낮은 변동성, 안정적 ETF</li><li>RSI <b>53.7</b> — 과열 없는 최적 진입 구간</li><li>MA20·MA60 <b>정배열</b> — 중장기 상승추세 확립</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok">53.7</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">9.8</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">0.93배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#2980b9;font-weight:700">-0.5%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+6.8%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>13,334원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>13,229원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">142원</span></div>
+          <div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">285주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">15.4%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">13,530원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">13,180원</div><div class="ts">-2.6%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">14,140원</div><div class="ts">+4.5%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">14,540원</div><div class="ts">+7.5%</div></div>
+    </div>
+    
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#0077be">E5</div>
+    <div class="card-title-wrap">
+      <div class="card-name">ACE 미국배당다우존스</div>
+      <div class="card-meta">402970 &middot; KOSPI &middot; <span class="sector-tag">미국지수</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">15,875원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#e74c3c;font-weight:700">+1.3%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>테마: <b>미국지수</b> — 구조적 성장 섹터 추종 ETF</li><li>12주 수익률 <b>+6.8%</b> — 완만한 회복세 진행 중</li><li>일일 변동성 <b>1.1%</b> — 낮은 변동성, 안정적 ETF</li><li>RSI <b>54.5</b> — 과열 없는 최적 진입 구간</li><li>MA20·MA60 <b>정배열</b> — 중장기 상승추세 확립</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok">54.5</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">10.0</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">1.05배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#2980b9;font-weight:700">-0.5%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+6.8%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>15,734원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>15,616원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">167원</span></div>
+          <div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">243주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">17.1%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">15,950원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">15,540원</div><div class="ts">-2.6%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">16,670원</div><div class="ts">+4.5%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">17,150원</div><div class="ts">+7.5%</div></div>
+    </div>
+    
+  </div>
+</div>
+</div>
+
+<!-- 기관연동 한국 종목 상세 -->
+<div class="sec">
+  <div class="sec-title sec-title-purple">🟣 기관연동 한국 종목 TOP 5 — 상세 분석 <span class="model-badge badge-inst">글로벌 기관 섹터 신호 + 기술적 지표</span></div>
+  <div class="model-intro">
+    📌 <b>선정 기준</b>: 안정 대장주 모델 베이스 + 글로벌 11개 기관 섹터 집중도 보너스(최대 +0.15) 적용 — 기관 집중 섹터와 일치하는 한국 종목 우선 선발<br>
+    ✅ <b>특징</b>: 글로벌 스마트머니 방향성과 한국 기술적 지표를 결합한 복합 모델<br>📎 <b>TOP5 평균 상관계수</b>: 0.35 — 분산 우수 (최근 60일 일별 수익률 기준)
+  </div>
+  
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#8e44ad">I1</div>
+    <div class="card-title-wrap">
+      <div class="card-name">메리츠금융지주</div>
+      <div class="card-meta">138040 &middot; KOSPI &middot; <span class="sector-tag">금융/보험</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">117,600원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#e74c3c;font-weight:700">+2.8%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>글로벌 기관 <b>Financials</b> 섹터 평균 <b>8%</b> 집중 — 금융/보험 수혜 기대</li><li>MA20·MA60 <b>정배열</b> — 중장기 상승추세 확립</li><li>MA20 대비 <b>+2.1%</b> — 과열 없는 이상적 진입 구간</li><li>RSI <b>55.0</b> — 과열·과매도 없는 최적 매수 구간</li><li>4주 수익률 <b>+11.4%</b> — 안정적 상승세</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok">55.0</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">407.6</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">1.1배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#e74c3c;font-weight:700">+11.4%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+3.2%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>115,135원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>110,220원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">5,629원</span></div>
+          <div class="chip"><span class="cl">PER</span><span style="font-weight:700">9.11배</span></div><div class="chip"><span class="cl">PBR</span><span style="font-weight:700">1.92배</span></div><div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">11주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">35.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">118,190원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">109,380원</div><div class="ts">-7.5%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">131,400원</div><div class="ts">+11.2%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">140,220원</div><div class="ts">+18.6%</div></div>
+    </div>
+    <div class="caution">⚠ 일일변동 4.8% — 분할 매수 권장</div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#9b59b6">I2</div>
+    <div class="card-title-wrap">
+      <div class="card-name">현대그린푸드</div>
+      <div class="card-meta">453340 &middot; KOSPI &middot; <span class="sector-tag">유통/소비재</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">18,320원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#e74c3c;font-weight:700">+1.0%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>MA20·MA60 <b>정배열</b> — 중장기 상승추세 확립</li><li>MA20 대비 <b>+1.4%</b> — 과열 없는 이상적 진입 구간</li><li>RSI <b>49.6</b> — 과열·과매도 없는 최적 매수 구간</li><li>4주 수익률 <b>+10.6%</b> — 안정적 상승세</li><li>MACD 히스토그램 <b>+13.3</b> — 상승 모멘텀 지속</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok">49.6</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">13.3</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">0.83배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#e74c3c;font-weight:700">+10.6%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+13.1%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>18,061원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>17,586원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">711원</span></div>
+          <div class="chip"><span class="cl">PER</span><span style="font-weight:700">6.9배</span></div><div class="chip"><span class="cl">PBR</span><span style="font-weight:700">0.82배</span></div><div class="chip"><span class="cl">배당수익률</span><span style="color:#16a085;font-weight:700">3.69%</span></div><div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">80주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">60.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">18,410원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">17,160원</div><div class="ts">-6.8%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">20,280원</div><div class="ts">+10.2%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">21,540원</div><div class="ts">+17.0%</div></div>
+    </div>
+    <div class="caution">⚠ 일일변동 3.9% — 분할 매수 권장</div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#7d3c98">I3</div>
+    <div class="card-title-wrap">
+      <div class="card-name">LG생활건강</div>
+      <div class="card-meta">051900 &middot; KOSPI &middot; <span class="sector-tag">화학</span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">263,000원</div>
+      <div style="font-size:13px;font-weight:700">주간 <span style="color:#e74c3c;font-weight:700">+7.8%</span></div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>현재가가 MA60(248,458원) 상회 — 중기 추세 유효</li><li>MA20 대비 <b>+6.2%</b> — 과열 없는 이상적 진입 구간</li><li>RSI <b>55.5</b> — 과열·과매도 없는 최적 매수 구간</li><li>4주 수익률 <b>+14.6%</b> — 안정적 상승세</li><li>MACD 히스토그램 <b>+1915.3</b> — 상승 모멘텀 지속</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok">55.5</span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700">1915.3</span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">1.27배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#e74c3c;font-weight:700">+14.6%</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#e74c3c;font-weight:700">+3.3%</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>247,600원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>248,458원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">10,643원</span></div>
+          <div class="chip"><span class="cl">PBR</span><span style="font-weight:700">0.81배</span></div><div class="chip"><span class="cl">배당수익률</span><span style="color:#16a085;font-weight:700">0.76%</span></div><div class="chip"><span class="cl">권장수량(1천만·1%리스크)</span><span style="color:#8e44ad;font-weight:700">4주</span></div>
+          <div class="chip"><span class="cl">📌 추천 비중</span><span style="color:#8e44ad;font-weight:700">5.0%</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">264,320원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">241,710원</div><div class="ts">-8.6%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">298,240원</div><div class="ts">+12.8%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">320,840원</div><div class="ts">+21.4%</div></div>
+    </div>
+    <div class="caution">⚠ 일일변동 4.0% — 분할 매수 권장</div>
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#a569bd">I4</div>
+    <div class="card-title-wrap">
+      <div class="card-name"></div>
+      <div class="card-meta"> &middot;  &middot; <span class="sector-tag"></span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">0원</div>
+      <div style="font-size:13px;font-weight:700">주간 %</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>퀀트 종합점수 상위 선정</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok"></span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700"></span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#aaa">-</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#aaa">-</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>-원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>-원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">0원</span></div>
+          
+          
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">-원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">-원</div><div class="ts">%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">-원</div><div class="ts">+%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">-원</div><div class="ts">+%</div></div>
+    </div>
+    
+  </div>
+</div>
+<div class="card">
+  <div class="card-top">
+    <div class="rank-dot" style="background:#bb8fce">I5</div>
+    <div class="card-title-wrap">
+      <div class="card-name"></div>
+      <div class="card-meta"> &middot;  &middot; <span class="sector-tag"></span></div>
+    </div>
+    <div class="card-price">
+      <div class="price-num">0원</div>
+      <div style="font-size:13px;font-weight:700">주간 %</div>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="two-col">
+      <div class="info-box reason-box">
+        <div class="box-label">✅ 선정 이유</div>
+        <ul class="reason-list"><li>퀀트 종합점수 상위 선정</li></ul>
+      </div>
+      <div class="info-box indicator-box">
+        <div class="box-label">📊 주요 지표</div>
+        <div class="chips">
+          <div class="chip"><span class="cl">RSI</span><span class="rsi-ok"></span></div>
+          <div class="chip"><span class="cl">MACD 히스토</span><span style="color:#e74c3c;font-weight:700"></span></div>
+          <div class="chip"><span class="cl">거래량 비율</span><span style="color:#e74c3c;font-weight:700">배</span></div>
+          <div class="chip"><span class="cl">4주 수익률</span><span style="color:#aaa">-</span></div>
+          <div class="chip"><span class="cl">12주 수익률</span><span style="color:#aaa">-</span></div>
+          <div class="chip"><span class="cl">MA20</span><span>-원</span></div>
+          <div class="chip"><span class="cl">MA60</span><span>-원</span></div>
+          <div class="chip"><span class="cl">ATR(일변동)</span><span style="color:#e65100">0원</span></div>
+          
+          
+        </div>
+      </div>
+    </div>
+    <div class="trade-grid">
+      <div class="tc tc-entry"><div class="tl">💰 매수가</div><div class="tv">-원</div><div class="ts">월요일 시초가</div></div>
+      <div class="tc tc-stop"><div class="tl">🛑 손절가</div><div class="tv">-원</div><div class="ts">%</div></div>
+      <div class="tc tc-t1"><div class="tl">🎯 목표가①</div><div class="tv">-원</div><div class="ts">+%</div></div>
+      <div class="tc tc-t2"><div class="tl">🏆 목표가②</div><div class="tv">-원</div><div class="ts">+%</div></div>
+    </div>
+    
+  </div>
+</div>
+</div>
+
+<!-- 투자 원칙 -->
+<div class="notice">
+  ⚠️ <b>실전 투자 원칙</b><br>
+  • <b>안정 모델 우선</b> : 장기적으로 변동성이 낮은 안정 대장주 모델 위주로 투자<br>
+  • <b>모멘텀 모델 소량</b> : 고변동성 종목은 투자금의 3~5% 이하 소량만 접근<br>
+  • <b>손절 필수</b> : 손절가 도달 시 감정 개입 없이 즉시 매도<br>
+  • <b>분할 매도</b> : 목표① 도달 시 절반 이상 매도해 수익 확정 후 목표② 추구<br>
+  • 본 리포트는 퀀트 모델로 자동 생성된 참고 자료이며, <b>투자 손익 책임은 본인에게 있습니다</b>
+</div>
+
+</div>
+<div class="footer">InitialTrading Weekly Quant Engine &nbsp;|&nbsp; 기준일: 2026-07-29 &nbsp;|&nbsp; 2026-07-29 생성</div>
+</body></html>
