@@ -141,7 +141,11 @@ outputs/reports/report_*.html      ← 최종 HTML 리포트
 
 - **GitHub Issues**: 분석 완료 시 `[YYYY-MM-DD] 주간 퀀트 분석` 이슈 자동 생성 (`weekly-analysis` 라벨)
   - Issue 포함 내용: 시장요약, 한국 시총 TOP5, 한국 수급동향(외국인·기관 순매수·매도), 종목 추천 TOP5, HTML 리포트 링크
-- **GitHub Actions**: `.github/workflows/weekly-analysis.yml` — **평일 매일 17:00 KST** 자동 실행 + 수동 트리거(`workflow_dispatch`) 지원
+- **GitHub Actions**: `.github/workflows/weekly-analysis.yml` — **평일 매일 20:30 KST**(`cron: '30 11 * * 1-5'`) 자동 실행 + 수동 트리거(`workflow_dispatch`) 지원
+  - 20:30인 이유: 시간외(넥스트레이드 애프터마켓)가 **20:00에 종료**되므로 그 뒤여야 시간외 *최종* 체결가가 잡힌다.
+    이전 17:00 스케줄은 시간외 장중이라 중간값이 찍혔다 — 앞당기지 말 것
+  - GitHub 예약 실행은 러너 혼잡 시 10~30분 지연되는 게 정상(공식 동작)
+  - 러너는 UTC이므로 `send_telegram.py`는 `now_kst()`로 한국 장 기준 날짜를 명시 계산한다
   - 스텝 순서: 텔레그램 데일리 브리핑 **먼저** → 파이프라인(`SKIP_TELEGRAM=1`) → 리포트 커밋 → Issue
   - 브리핑은 MongoDB·파이프라인 산출물이 필요 없는 라이브 조회라 앞에 둔다. 뒤 단계가 실패해도 브리핑은 도착한다
   - `run_pipeline.py`는 `SKIP_TELEGRAM` 환경변수가 있으면 텔레그램 단계를 건너뛴다(중복 전송 방지). 로컬 실행 시엔 미설정이므로 종전대로 전송

@@ -7,8 +7,15 @@ send_telegram.py  -  장마감 후 텔레그램 데일리 브리핑
   3. 삼성전자·SK하이닉스 외국인/기관/개인 매매 동향 (pykrx, KRX_ID/KRX_PW 필요)
 """
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import requests
+
+KST = timezone(timedelta(hours=9))
+
+
+def now_kst():
+    """한국 장 기준 현재 시각(naive). GitHub Actions 러너는 UTC라 명시 변환한다."""
+    return datetime.now(KST).replace(tzinfo=None)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -77,7 +84,7 @@ def icon(chg):
 
 def kr_series(code, days=15):
     import FinanceDataReader as fdr
-    end   = datetime.now()
+    end   = now_kst()
     start = end - timedelta(days=days)
     df = fdr.DataReader(code, start, end)
     return df['Close'].dropna() if df is not None and 'Close' in df else None
@@ -211,7 +218,7 @@ def weekly_flows(code, days=5):
         if not (kid and kpw):
             return []
         from pykrx import stock as pykrx_stock
-        today = datetime.now()
+        today = now_kst()
         if today.weekday() >= 5:                       # 주말 → 직전 금요일
             today -= timedelta(days=today.weekday() - 4)
         start = (today - timedelta(days=20)).strftime('%Y%m%d')
@@ -234,7 +241,7 @@ def weekly_flows(code, days=5):
 
 def collect() -> dict:
     """텔레그램 메시지와 HTML 리포트가 함께 쓰는 데이터를 한 번만 수집."""
-    data = {'date': datetime.now().strftime('%Y-%m-%d'),
+    data = {'date': now_kst().strftime('%Y-%m-%d'),
             'indexes': [], 'holdings': [], 'flows': []}
 
     for name, code in KR_INDEXES:
