@@ -1,7 +1,8 @@
 # InitialTrading — 주간 퀀트 분석 시스템
 
 Carlos의 한국 주식 퀀트 분석 자동화 프로젝트.
-매주 금요일 장 마감 후 파이프라인을 돌려 차주 TOP5 유망 종목을 뽑고 텔레그램으로 전송한다.
+매주 금요일 장 마감 후 파이프라인을 돌려 차주 TOP5 유망 종목을 뽑아 HTML 리포트 + GitHub Issue로 남긴다.
+텔레그램은 평일 매일 장 마감 후 ①주요 지수 ②보유 종목 현재가 ③삼성전자·SK하이닉스 수급 동향, 3가지만 담은 데일리 브리핑 1건만 전송한다 (TOP5 추천은 텔레그램으로 보내지 않음 — 스팸 방지를 위해 2026-08-29 제거).
 
 ## 핵심 커맨드
 
@@ -29,7 +30,7 @@ run_pipeline.py              ← 진입점 (/분석 및 2_weekly.bat 모두 이�
   ├── market_regime.py       ← KOSPI MA200/MA60 + 변동성 기반 상승/중립/하락 판정
   ├── track_performance.py   ← 추천 이력(recommendations 컬렉션) 저장 + 1주/2주/4주 성과 평가
   ├── build_html.py          ← 최종 HTML 리포트 렌더링
-  ├── send_telegram.py       ← 텔레그램 봇으로 6개 메시지 전송
+  ├── send_telegram.py       ← 텔레그램 데일리 브리핑 1건 전송 (지수·보유종목·수급, 파이프라인 산출물과 독립적)
   └── create_github_issue.py ← 분석 결과를 GitHub Issue로 등록 (gh CLI 필요)
 ```
 
@@ -103,7 +104,8 @@ track_performance.py         ← 추천 이력 저장 + 성과 평가 (단독 �
 backtest.py                  ← 워크포워드 백테스트 (단독 도구, 파이프라인 미포함)
 generate_report.py           ← 데이터 파일 생성 (key=value)
 build_html.py                ← HTML 리포트 렌더링
-send_telegram.py             ← 텔레그램 전송 (4개 메시지)
+send_telegram.py             ← 텔레그램 데일리 브리핑 전송 (요약 메시지 + HTML 리포트)
+build_daily_html.py          ← 데일리 브리핑 HTML 생성 (수급 SVG 그래프 포함)
 parse_report.py              ← 리포트 파싱 헬퍼 (/분석 커맨드가 호출)
 telegram_config.py           ← BOT_TOKEN / CHAT_ID 설정
 2_weekly.bat                 ← run_pipeline.py 실행 + 리포트 자동 오픈
@@ -114,14 +116,21 @@ outputs/reports/report_*.html      ← 최종 HTML 리포트
 
 ## 텔레그램 봇
 - `telegram_config.py`에 BOT_TOKEN / CHAT_ID 설정
-- `send_telegram.py`가 7개 메시지 전송:
-  1. TOP5 요약 (안정·모멘텀·ETF 종합)
-  2. 🎯 지난 추천 성과 리포트 (모델별 1주/4주 수익률·승률·목표/손절 도달률, 과거 추천 누적 시에만)
-  3. HTML 파일
-  4. 🌍 글로벌 기관 포트폴리오 동향
-  5. 🟣 기관연동 한국 종목 TOP5
-  6. 🇰🇷 한국 외국인/기관 섹터 매매 동향
-  7. 📊 글로벌 기관 투자 변화 분석
+- `send_telegram.py`는 다른 파이프라인 산출물(weekly_full_*.html)과 무관하게 실행 시점에 직접 라이브 데이터를 조회해
+  **요약 메시지 1건 + HTML 리포트 파일 1건**을 전송한다. 데이터는 `collect()`가 한 번만 모아 양쪽이 공유:
+  1. 📈 주요 지수 — 코스피·코스닥(FDR: KS11/KQ11) + 나스닥·S&P500·필라델피아반도체 SOX(yfinance: ^IXIC/^GSPC/^SOX), 전일대비 등락률
+  2. 💼 보유 종목 — `PORTFOLIO_KR`(FDR) + `PORTFOLIO_US`(yfinance) 현재가·등락률. 스페이스X는 상장 티커 미확정으로 보류 중
+  3. 🇰🇷 삼성전자·SK하이닉스 매매 동향 — pykrx `get_market_trading_value_by_date` 기반 **최근 5거래일** 외국인/기관/개인
+     순매수 거래대금(억원). 텔레그램 본문에는 당일 + 5일 누적, 그래프는 HTML 리포트에. KRX_ID/KRX_PW 필요
+- **가격 기준**: 정규장 종가가 기본. 시간외(넥스트레이드 애프터마켓 ~20:00) 체결가가 다르면 아래 줄에 병기한다.
+  증권사 앱은 시간외 최종가를 보여주므로 이 병기가 없으면 "데이터가 틀렸다"는 오해가 생긴다 — 제거하지 말 것.
+- TOP5 추천·성과리포트·기관동향 등 기존 메시지들은 전부 제거됨(스팸 민원). 해당 정보는 주간 HTML 리포트 + GitHub Issue에는 남는다.
+
+### HTML 리포트 (build_daily_html.py)
+- `outputs/reports/daily_YYYY-MM-DD.html` — 외부 CDN 없는 자체 완결형(인라인 CSS/SVG), 라이트·다크 모드 대응
+- 구성: 지수 KPI 타일 → 보유 종목 표 → 삼성전자·SK하이닉스 **일별 순매수 그룹 막대그래프**(인라인 SVG) + 수치 표(5일 누적 포함)
+- 색상은 dataviz 스킬 검증 팔레트(외국인 파랑 / 기관 주황 / 개인 초록), light·dark 양쪽 validator 통과
+- 주간 파이프라인의 `build_html.py`(TOP5 리포트)와는 별개 파일이니 혼동 주의
 
 ## 포트폴리오 (현재 보유 ETF)
 `weekly_analysis.py` 상단 `MY_PORTFOLIO_KR` 딕셔너리에서 관리.
@@ -133,6 +142,9 @@ outputs/reports/report_*.html      ← 최종 HTML 리포트
 - **GitHub Issues**: 분석 완료 시 `[YYYY-MM-DD] 주간 퀀트 분석` 이슈 자동 생성 (`weekly-analysis` 라벨)
   - Issue 포함 내용: 시장요약, 한국 시총 TOP5, 한국 수급동향(외국인·기관 순매수·매도), 종목 추천 TOP5, HTML 리포트 링크
 - **GitHub Actions**: `.github/workflows/weekly-analysis.yml` — **평일 매일 17:00 KST** 자동 실행 + 수동 트리거(`workflow_dispatch`) 지원
+  - 스텝 순서: 텔레그램 데일리 브리핑 **먼저** → 파이프라인(`SKIP_TELEGRAM=1`) → 리포트 커밋 → Issue
+  - 브리핑은 MongoDB·파이프라인 산출물이 필요 없는 라이브 조회라 앞에 둔다. 뒤 단계가 실패해도 브리핑은 도착한다
+  - `run_pipeline.py`는 `SKIP_TELEGRAM` 환경변수가 있으면 텔레그램 단계를 건너뛴다(중복 전송 방지). 로컬 실행 시엔 미설정이므로 종전대로 전송
   - 수동 실행: GitHub → Actions 탭 → "퀀트 분석 파이프라인" → Run workflow
 - **HTML 리포트**: Actions 실행 시 `reports/report_YYYY-MM-DD.html`로 커밋 후 Issue에 링크 첨부
   - 파일명 날짜 = 데이터 날짜(prices 최신일) 기준 — 시스템 날짜 사용 시 404 발생

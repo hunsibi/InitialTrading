@@ -1,11 +1,16 @@
 """
-send_telegram.py  -  weekly quant report -> telegram (안정 대장주 TOP5 + 모멘텀 TOP5)
-"""
-import os, glob, re, requests
-from datetime import datetime, timedelta
+send_telegram.py  -  장마감 후 텔레그램 데일리 브리핑
 
-BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
-REPORT_DIR = os.path.join(BASE_DIR, 'outputs', 'reports')
+전송 내용은 아래 3가지만:
+  1. 주요 지수: 코스피/코스닥/나스닥/S&P500/필라델피아반도체(SOX)
+  2. 보유 종목 현재가·등락률
+  3. 삼성전자·SK하이닉스 외국인/기관/개인 매매 동향 (pykrx, KRX_ID/KRX_PW 필요)
+"""
+import os
+from datetime import datetime, timedelta
+import requests
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 try:
     import telegram_config as cfg
@@ -13,375 +18,292 @@ try:
     CHAT_ID   = str(cfg.CHAT_ID)
 except ImportError:
     print("  [오류] telegram_config.py 없음")
-    exit(1)
+    raise SystemExit(1)
+
+# pykrx import 전에 KRX 자격증명을 환경변수에 미리 주입 (기관/외국인 수급 조회용)
+try:
+    import krx_config as _kc
+    os.environ.setdefault('KRX_ID', _kc.KRX_ID)
+    os.environ.setdefault('KRX_PW', _kc.KRX_PW)
+except ImportError:
+    pass
 
 TELEGRAM_API = f"https://api.telegram.org/bot{BOT_TOKEN}"
 
-RANK_ICO = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣"]
+KR_INDEXES = [('코스피', 'KS11'), ('코스닥', 'KQ11')]
+US_INDEXES = [('나스닥', '^IXIC'), ('S&P500', '^GSPC'), ('필라델피아 반도체', '^SOX')]
+
+# 보유 종목 (한국: FDR 코드 / 미국: yfinance 티커)
+PORTFOLIO_KR = [
+    ('삼성전자',                    '005930'),
+    ('SK하이닉스',                  '000660'),
+    ('KODEX 삼성전자채권혼합',       '448330'),
+    ('TIGER 미국S&P500',           '143850'),
+    ('KODEX AI전력핵심설비',        '466920'),
+    ('TIGER 200',                  '102110'),
+    ('TIGER KRX금현물',             '411060'),
+    ('KODEX 종합채권(AA-이상)액티브', '273130'),
+    ('KODEX 차이나휴머노이드로봇',    '453810'),
+]
+PORTFOLIO_US = [
+    ('마이크론 테크놀로지', 'MU'),
+    ('BITX',              'BITX'),
+    ('TSLL',              'TSLL'),
+]
+
+# 매매 동향 조회 대상 (한국 종목만 pykrx 지원)
+FLOW_TARGETS = [('삼성전자', '005930'), ('SK하이닉스', '000660')]
 
 
-def load_data() -> dict:
-    patterns = sorted(glob.glob(os.path.join(REPORT_DIR, 'weekly_full_*.html')), reverse=True)
-    if not patterns:
-        raise FileNotFoundError("weekly_full_*.html 없음. generate_report.py 먼저 실행하세요.")
-    data_file = patterns[0]
-    print(f"  데이터 파일: {data_file}")
-    d = {}
-    with open(data_file, encoding='utf-8') as f:
-        for line in f:
-            line = line.rstrip('\n')
-            if '=' in line:
-                k, _, v = line.partition('=')
-                d[k] = v
-    d['__file__'] = data_file
-    return d
-
-
-def g(d, k):
-    return d.get(k, '')
-
-
-def fi(v):
-    try:    return f"{int(v):,}"
-    except: return str(v)
-
-
-def sp(v):
+def fnum(v, nd=0):
     try:
-        return ('+' if float(v) >= 0 else '') + str(v) + '%'
-    except:
-        return str(v) + '%'
+        return f"{v:,.{nd}f}"
+    except (TypeError, ValueError):
+        return str(v)
 
 
-def held_mark(d, pfx, i):
-    """보유 중인 종목 표시 (MY_PORTFOLIO_KR 중복)."""
-    return ' 📌보유중' if g(d, f'{pfx}{i}_HELD') == '1' else ''
-
-
-def qty_txt(d, pfx, i):
-    """1,000만원 계좌 1% 리스크 기준 권장 수량."""
-    q = g(d, f'{pfx}{i}_QTY')
-    return f"  수량 `{q}주`" if q else ''
-
-
-def next_mon(date_str):
+def fpct(v):
     try:
-        dt  = datetime.strptime(date_str, '%Y-%m-%d')
-        gap = (7 - dt.weekday()) % 7
-        return (dt + timedelta(days=(gap or 7))).strftime('%Y-%m-%d')
-    except:
-        return ''
+        return f"{'+' if v >= 0 else ''}{v:.2f}%"
+    except (TypeError, ValueError):
+        return str(v)
 
 
-def build_summary(d):
-    date  = g(d,'DATE')
-    nm    = next_mon(date)
-    kr    = float(g(d,'KOSPI_RET')  or 0)
-    qr    = float(g(d,'KOSDAQ_RET') or 0)
-    ki    = "\U0001f4c8" if kr>=0 else "\U0001f4c9"
-    qi    = "\U0001f4c8" if qr>=0 else "\U0001f4c9"
-    lines = [
-        "\U0001f4ca *주간 퀀트 리포트*",
-        f"기준일: {date}  |  투자일: {nm}",
-        "",
-        "━━━ 🇰🇷 한국 시장 ━━━",
-        f"{ki} KOSPI  `{kr:+.2f}%`  상승 {g(d,'KOSPI_UP')} / 하락 {g(d,'KOSPI_DN')}",
-        f"{qi} KOSDAQ `{qr:+.2f}%`  상승 {g(d,'KOSDAQ_UP')} / 하락 {g(d,'KOSDAQ_DN')}",
-    ]
-    sp_r = float(g(d, 'US_SP_RET') or 0)
-    nq_r = float(g(d, 'US_NQ_RET') or 0)
-    dj_r = float(g(d, 'US_DJ_RET') or 0)
-    if sp_r or nq_r or dj_r:
-        spi = "\U0001f4c8" if sp_r >= 0 else "\U0001f4c9"
-        nqi = "\U0001f4c8" if nq_r >= 0 else "\U0001f4c9"
-        dji_ico = "\U0001f4c8" if dj_r >= 0 else "\U0001f4c9"
-        sp_ad = f"  상승 {g(d,'US_SP_UP')} / 하락 {g(d,'US_SP_DN')}" if g(d,'US_SP_UP') else ''
-        dj_ad = f"  상승 {g(d,'US_DJ_UP')} / 하락 {g(d,'US_DJ_DN')}" if g(d,'US_DJ_UP') else ''
-        lines += [
-            "",
-            "━━━ 미국 시장 ━━━",
-            f"{spi} S\\&P 500  `{sp_r:+.2f}%`{sp_ad}",
-            f"{nqi} NASDAQ   `{nq_r:+.2f}%`",
-            f"{dji_ico} Dow Jones `{dj_r:+.2f}%`{dj_ad}",
-        ]
-    reg = g(d, 'REGIME')
-    if reg:
-        reg_ico = {'상승': '🟢', '중립': '🟡', '하락': '🔴'}.get(reg, '🟡')
-        lines += ["", f"━━━ {reg_ico} 시장 레짐: *{reg}* ━━━",
-                  f"_{g(d, 'REGIME_ADVICE')}_"]
-        if g(d, 'REGIME_VOLWARN') == '1':
-            lines.append(f"⚠️ _단기 변동성 높음 \\(연환산 {g(d, 'REGIME_VOL')}%\\) — 분할 매수 권장_")
-        if reg == '하락':
-            lines.append("⚠️ *약세장 — 추천 종목 수 3개로 축소, 신규 매수 신중*")
-    lines += [
-        "",
-        "━━━ 🟢 안정 대장주 TOP 5 ━━━",
-        "_시총 상위 대장주 · 추세건전성+리스크조정 · 섹터 분산 적용_",
-        "_수량 = 1,000만원 계좌 · 1% 리스크 기준_",
-    ]
-    for i in range(5):
-        if not g(d, f'S{i}_NAME'):
-            break
-        lines += [
-            "",
-            f"{RANK_ICO[i]} *{g(d,f'S{i}_NAME')}* `{g(d,f'S{i}_CODE')}` {g(d,f'S{i}_MKT')} · {g(d,f'S{i}_SECTOR')}{held_mark(d,'S',i)}",
-            f"   현재가 `{fi(g(d,f'S{i}_CLOSE'))}원`  주간 `{sp(g(d,f'S{i}_R1W'))}`  12주 `{sp(g(d,f'S{i}_R12W'))}`",
-            f"   RSI `{g(d,f'S{i}_RSI')}`  거래량 `{g(d,f'S{i}_VOLR')}배`",
-            f"   매수 `{fi(g(d,f'S{i}_ENTRY'))}`  손절 `{fi(g(d,f'S{i}_STOP'))}`({g(d,f'S{i}_STOP_PCT')}%){qty_txt(d,'S',i)}",
-            f"   목표1 `{fi(g(d,f'S{i}_T1'))}`(+{g(d,f'S{i}_T1_PCT')}%)  목표2 `{fi(g(d,f'S{i}_T2'))}`(+{g(d,f'S{i}_T2_PCT')}%)",
-        ]
-    lines += [
-        "",
-        "━━━ 🔴 단기 모멘텀 TOP 5 ━━━",
-        "_전 종목 · 1주·4주·12주 모멘텀 기준 (고변동성 주의)_",
-    ]
-    for i in range(5):
-        if not g(d, f'M{i}_NAME'):
-            break
-        lines += [
-            "",
-            f"{RANK_ICO[i]} *{g(d,f'M{i}_NAME')}* `{g(d,f'M{i}_CODE')}` {g(d,f'M{i}_MKT')}{held_mark(d,'M',i)}",
-            f"   현재가 `{fi(g(d,f'M{i}_CLOSE'))}원`  주간 `{sp(g(d,f'M{i}_R1W'))}`  12주 `{sp(g(d,f'M{i}_R12W'))}`",
-            f"   RSI `{g(d,f'M{i}_RSI')}`  거래량 `{g(d,f'M{i}_VOLR')}배`",
-            f"   매수 `{fi(g(d,f'M{i}_ENTRY'))}`  손절 `{fi(g(d,f'M{i}_STOP'))}`({g(d,f'M{i}_STOP_PCT')}%){qty_txt(d,'M',i)}",
-            f"   목표1 `{fi(g(d,f'M{i}_T1'))}`(+{g(d,f'M{i}_T1_PCT')}%)  목표2 `{fi(g(d,f'M{i}_T2'))}`(+{g(d,f'M{i}_T2_PCT')}%)",
-        ]
-    if g(d, 'E0_NAME'):
-        lines += [
-            "",
-            "━━━ 🔵 ETF 추천 TOP 5 ━━━",
-            "_퀀트 선정 유망 ETF · 레버리지·인버스 제외_",
-        ]
-        for i in range(5):
-            if not g(d, f'E{i}_NAME'):
-                break
-            lines += [
-                "",
-                f"{RANK_ICO[i]} *{g(d,f'E{i}_NAME')}* `{g(d,f'E{i}_CODE')}` {g(d,f'E{i}_MKT')}{held_mark(d,'E',i)}",
-                f"   테마 `{g(d,f'E{i}_SECTOR')}`",
-                f"   현재가 `{fi(g(d,f'E{i}_CLOSE'))}원`  주간 `{sp(g(d,f'E{i}_R1W'))}`  12주 `{sp(g(d,f'E{i}_R12W'))}`",
-                f"   RSI `{g(d,f'E{i}_RSI')}`  거래량 `{g(d,f'E{i}_VOLR')}배`",
-                f"   매수 `{fi(g(d,f'E{i}_ENTRY'))}`  손절 `{fi(g(d,f'E{i}_STOP'))}`({g(d,f'E{i}_STOP_PCT')}%){qty_txt(d,'E',i)}",
-                f"   목표1 `{fi(g(d,f'E{i}_T1'))}`(+{g(d,f'E{i}_T1_PCT')}%)  목표2 `{fi(g(d,f'E{i}_T2'))}`(+{g(d,f'E{i}_T2_PCT')}%)",
-            ]
-    lines += ["", "⚠️ _퀀트 모델 자동 산출 — 투자 손익 책임은 본인에게 있습니다_"]
-    return '\n'.join(lines)
+def icon(chg):
+    if chg > 0:  return "📈"
+    if chg < 0:  return "📉"
+    return "➖"
 
 
-def build_performance_section(d):
-    """과거 추천 성과 리포트 섹션 (track_performance.py 집계 기반)."""
-    weeks = g(d, 'PERF_WEEKS')
-    if not weeks:
-        return ''
-    MODELS = [('S', '🟢 안정 대장주'), ('M', '🔴 단기 모멘텀'),
-              ('E', '🔵 ETF 추천'), ('I', '🟣 기관연동')]
-    HIT_ICO = {'target2': '🏆', 'target1': '🎯', 'stop': '⛔', '': '▶'}
+def kr_series(code, days=15):
+    import FinanceDataReader as fdr
+    end   = datetime.now()
+    start = end - timedelta(days=days)
+    df = fdr.DataReader(code, start, end)
+    return df['Close'].dropna() if df is not None and 'Close' in df else None
 
-    kospi = g(d, 'PERF_KOSPI_RET1W')
-    lines = [
-        "🎯 *지난 추천 성과 리포트*",
-        f"_추천 시점 종가 대비 실제 수익률 · 최근 {weeks}회 추천 누적_",
-    ]
-    if kospi:
-        lines.append(f"_같은 기간 KOSPI 1주 평균 `{sp(kospi)}`_")
 
-    for m, label in MODELS:
-        if not g(d, f'PERF_{m}_N'):
+def us_quote(ticker):
+    """미국 지수/종목의 최신 종가 + 직전 종가.
+
+    yfinance의 history()는 최신 거래일 Close를 NaN으로 돌려주는 경우가 잦다.
+    그대로 dropna 하면 하루 전 종가가 당일 값처럼 조용히 표시되므로,
+    최신가는 fast_info.last_price(안정적)로, 직전 종가는 history의 마지막
+    유효 종가로 조합한다. fast_info.previous_close는 개별 종목에서 실제
+    직전 거래일 종가와 어긋나므로 쓰지 않는다.
+    """
+    import yfinance as yf
+    tk = yf.Ticker(ticker)
+
+    series = None
+    try:
+        h = tk.history(period='10d', interval='1d')
+        if h is not None and 'Close' in h and not h.empty:
+            series = h['Close'].dropna()
+    except Exception:
+        pass
+    if series is None or len(series) < 1:
+        return None
+
+    last_price = None
+    try:
+        lp = tk.fast_info.last_price
+        if lp and float(lp) > 0:
+            last_price = float(lp)
+    except Exception:
+        pass
+
+    hist_last = float(series.iloc[-1])
+    hist_date = series.index[-1]
+
+    # fast_info가 history보다 최신 시점을 가리키면 그 값을 당일 종가로 채택
+    if last_price is not None and abs(last_price - hist_last) > 1e-6:
+        import pandas as _pd
+        return {'value': last_price, 'prev': hist_last,
+                'date': (hist_date + _pd.tseries.offsets.BDay(1)).strftime('%m-%d')}
+
+    if len(series) < 2:
+        return None
+    return {'value': hist_last, 'prev': float(series.iloc[-2]),
+            'date': hist_date.strftime('%m-%d')}
+
+
+def kr_after_market(code):
+    """네이버 API 기반 시간외(NXT 애프터마켓) 최종가.
+
+    FDR·KRX는 정규장(~15:30) 종가만 제공하지만 증권사 앱은 20:00까지 이어지는
+    시간외 최종 체결가를 보여준다. 두 값이 다를 때 병기하기 위해 조회한다.
+    ETF 등 시간외 거래가 없는 종목은 None.
+    """
+    try:
+        r = requests.get(
+            f'https://m.stock.naver.com/api/stock/{code}/basic',
+            headers={'User-Agent': 'Mozilla/5.0',
+                     'Referer': 'https://m.stock.naver.com/'},
+            timeout=10)
+        if r.status_code != 200:
+            return None
+        info = (r.json() or {}).get('overMarketPriceInfo') or {}
+        price = str(info.get('overPrice', '')).replace(',', '')
+        chg   = str(info.get('fluctuationsRatio', '')).replace(',', '')
+        if not price or not chg:
+            return None
+        return {'value': float(price), 'chg': float(chg)}
+    except Exception:
+        return None
+
+
+def kr_row(name, code, after=False):
+    """FDR 기반 한국 지수/종목 정규장 종가 + 전일대비 등락률 (+ 시간외 병기)."""
+    try:
+        c = kr_series(code)
+        if c is None or len(c) < 2:
+            return None
+        cur, prev = float(c.iloc[-1]), float(c.iloc[-2])
+        chg = (cur - prev) / prev * 100 if prev else 0.0
+        row = {'name': name, 'value': cur, 'chg': chg,
+               'date': c.index[-1].strftime('%m-%d'), 'after': None}
+        if after:
+            am = kr_after_market(code)
+            # 정규장과 값이 다를 때만 병기 (동일하면 노이즈)
+            if am and abs(am['value'] - cur) >= 0.5:
+                row['after'] = am
+        return row
+    except Exception as e:
+        print(f"  [경고] {name} 조회 실패: {type(e).__name__}: {e}")
+        return None
+
+
+def us_row(name, ticker, after=False):
+    """yfinance 기반 미국 지수/종목 정규장 종가 + 등락률 (+ 애프터마켓 병기)."""
+    try:
+        q = us_quote(ticker)
+        if not q:
+            print(f"  [경고] {name}({ticker}) 유효 데이터 없음 — 생략")
+            return None
+        cur, prev = q['value'], q['prev']
+        chg = (cur - prev) / prev * 100 if prev else 0.0
+        row = {'name': name, 'value': cur, 'chg': chg,
+               'date': q['date'], 'after': None}
+        if after:
+            try:
+                import yfinance as yf
+                info = yf.Ticker(ticker).info or {}
+                ap   = info.get('postMarketPrice')
+                # 애프터마켓 등락률도 전일 종가 대비로 계산해 기준을 통일
+                if ap and abs(float(ap) - cur) >= 0.005:
+                    ap = float(ap)
+                    row['after'] = {'value': ap,
+                                    'chg': (ap - prev) / prev * 100 if prev else 0.0}
+            except Exception:
+                pass
+        return row
+    except Exception as e:
+        print(f"  [경고] {name}({ticker}) 조회 실패: {type(e).__name__}: {e}")
+        return None
+
+
+def weekly_flows(code, days=5):
+    """pykrx 기반 최근 N거래일 외국인/기관/개인 일별 순매수 거래대금(억원)."""
+    try:
+        kid = os.environ.get('KRX_ID', '')
+        kpw = os.environ.get('KRX_PW', '')
+        if not (kid and kpw):
+            return []
+        from pykrx import stock as pykrx_stock
+        today = datetime.now()
+        if today.weekday() >= 5:                       # 주말 → 직전 금요일
+            today -= timedelta(days=today.weekday() - 4)
+        start = (today - timedelta(days=20)).strftime('%Y%m%d')
+        end   = today.strftime('%Y%m%d')
+        df = pykrx_stock.get_market_trading_value_by_date(start, end, code)
+        if df is None or df.empty:
+            return []
+        df = df.tail(days)
+        return [{
+            'date':      idx.strftime('%m-%d'),
+            'full_date': idx.strftime('%Y-%m-%d'),
+            'foreign':   float(r.get('외국인합계', 0)) / 1e8,
+            'inst':      float(r.get('기관합계', 0)) / 1e8,
+            'indiv':     float(r.get('개인', 0)) / 1e8,
+        } for idx, r in df.iterrows()]
+    except Exception as e:
+        print(f"  [경고] {code} 수급 조회 실패: {type(e).__name__}: {e}")
+        return []
+
+
+def collect() -> dict:
+    """텔레그램 메시지와 HTML 리포트가 함께 쓰는 데이터를 한 번만 수집."""
+    data = {'date': datetime.now().strftime('%Y-%m-%d'),
+            'indexes': [], 'holdings': [], 'flows': []}
+
+    for name, code in KR_INDEXES:
+        r = kr_row(name, code)
+        if r:
+            r['flag'] = '🇰🇷'
+            data['indexes'].append(r)
+    for name, ticker in US_INDEXES:
+        r = us_row(name, ticker)
+        if r:
+            r['flag'] = '🇺🇸'
+            data['indexes'].append(r)
+
+    for name, code in PORTFOLIO_KR:
+        r = kr_row(name, code, after=True)
+        if r:
+            r['cur'] = '원'
+            data['holdings'].append(r)
+    for name, ticker in PORTFOLIO_US:
+        r = us_row(name, ticker, after=True)
+        if r:
+            r['cur'] = '$'
+            data['holdings'].append(r)
+
+    for name, code in FLOW_TARGETS:
+        data['flows'].append({'name': name, 'code': code,
+                              'flows': weekly_flows(code)})
+    return data
+
+
+def build_message(data) -> str:
+    lines = [f"📊 *일일 시황 브리핑* `{data['date']}`"]
+
+    # 1. 삼성전자·SK하이닉스 매매 동향 (당일 + 주간 합계) — 가장 먼저
+    lines += ["", "━━━ 🇰🇷 삼성전자·SK하이닉스 매매 동향 ━━━"]
+    any_flow = False
+    for c in data['flows']:
+        f = c['flows']
+        if not f:
             continue
-        lines += ["", f"━━━ {label} ━━━"]
-        row1 = f"1주 평균 `{sp(g(d, f'PERF_{m}_RET1W'))}`  승률 `{g(d, f'PERF_{m}_WIN1W')}%`"
-        if g(d, f'PERF_{m}_EXCESS1W'):
-            row1 += f"  KOSPI 대비 `{sp(g(d, f'PERF_{m}_EXCESS1W'))}p`"
-        lines.append(row1)
-        row2_parts = []
-        if g(d, f'PERF_{m}_RET4W'):
-            row2_parts.append(f"4주 평균 `{sp(g(d, f'PERF_{m}_RET4W'))}`")
-        if g(d, f'PERF_{m}_T1HIT'):
-            row2_parts.append(f"목표 달성 `{g(d, f'PERF_{m}_T1HIT')}%`")
-        if g(d, f'PERF_{m}_STOPHIT'):
-            row2_parts.append(f"손절 `{g(d, f'PERF_{m}_STOPHIT')}%`")
-        if row2_parts:
-            lines.append('  '.join(row2_parts))
-        best  = g(d, f'PERF_{m}_BEST').split('|')
-        worst = g(d, f'PERF_{m}_WORST').split('|')
-        if len(best) == 2 and len(worst) == 2:
-            lines.append(f"최고 {best[0]} `{sp(best[1])}` / 최저 {worst[0]} `{sp(worst[1])}`")
+        any_flow = True
+        last = f[-1]
+        wf = sum(x['foreign'] for x in f)
+        wi = sum(x['inst'] for x in f)
+        wp = sum(x['indiv'] for x in f)
+        lines.append(f"*{c['name']}* _{last['full_date']}_")
+        lines.append(f"   외국인 `{last['foreign']:+,.0f}억`  기관 `{last['inst']:+,.0f}억`  개인 `{last['indiv']:+,.0f}억`")
+        lines.append(f"   _{len(f)}일 누적_  외국인 `{wf:+,.0f}억`  기관 `{wi:+,.0f}억`  개인 `{wp:+,.0f}억`")
+    if not any_flow:
+        lines.append("_데이터 수집 실패 (KRX_ID/KRX_PW 확인 필요)_")
+    lines.append("_일별 그래프는 첨부 HTML 리포트 첫 화면에 있습니다_")
 
-    last_date = g(d, 'PERF_LAST_DATE')
-    has_last  = any(g(d, f'PERF_LAST_{m}_COUNT') for m, _ in MODELS)
-    if last_date and has_last:
-        lines += ["", f"━━━ 📅 직전 추천({last_date}) 결과 ━━━"]
-        for m, label in MODELS:
-            cnt = int(g(d, f'PERF_LAST_{m}_COUNT') or 0)
-            if cnt == 0:
-                continue
-            rows = []
-            for i in range(cnt):
-                v = g(d, f'PERF_LAST_{m}_{i}')
-                if not v:
-                    continue
-                p    = v.split('|')
-                name = p[0]
-                ret  = p[2] if len(p) > 2 else ''
-                hit  = p[3] if len(p) > 3 else ''
-                rows.append(f"{HIT_ICO.get(hit, '▶')} {name} `{sp(ret)}`")
-            if rows:
-                lines += ["", f"{label}"] + rows
-        lines += ["", "_🏆 목표② 🎯 목표① ⛔ 손절 ▶ 평가중 (추천 후 20거래일 기준)_"]
+    # 2. 주요 지수 (날짜 병기 — 소스가 최신일을 못 주면 바로 드러나도록)
+    lines += ["", "━━━ 📈 주요 지수 ━━━"]
+    for r in data['indexes']:
+        lines.append(f"{icon(r['chg'])} {r['flag']} {r['name']}  "
+                     f"`{fnum(r['value'], 2)}`  `{fpct(r['chg'])}`  _{r['date']}_")
 
-    lines += ["", "⚠️ _퀀트 모델 자동 산출 — 투자 손익 책임은 본인에게 있습니다_"]
-    return '\n'.join(lines)
+    # 3. 보유 종목 (정규장 종가 기준 · 시간외가 다르면 병기)
+    lines += ["", "━━━ 💼 보유 종목 ━━━"]
+    for r in data['holdings']:
+        usd = r['cur'] == '$'
+        val = f"${fnum(r['value'], 2)}" if usd else f"{fnum(r['value'], 0)}원"
+        lines.append(f"{icon(r['chg'])} {r['name']}  `{val}`  `{fpct(r['chg'])}`")
+        if r['after']:
+            a  = r['after']
+            av = f"${fnum(a['value'], 2)}" if usd else f"{fnum(a['value'], 0)}원"
+            lines.append(f"      _{'애프터' if usd else '시간외'} {av} {fpct(a['chg'])}_")
 
-
-def build_institutional_section(d):
-    """글로벌 기관 포트폴리오 동향 섹션 (텔레그램 메시지)."""
-    inst_count = int(g(d, 'INST_COUNT') or 0)
-    if inst_count == 0:
-        return ''
-    lines = [
-        "🌍 *글로벌 기관 포트폴리오 동향*",
-        "_SEC 13F 공시 기반 · 분기별 업데이트_",
-    ]
-    for j in range(min(inst_count, 11)):
-        name   = g(d, f'INST{j}_NAME')
-        if not name:
-            break
-        period  = g(d, f'INST{j}_PERIOD')
-        sectors = g(d, f'INST{j}_TOP3_SECTORS').replace('|', '  ')
-        holds   = g(d, f'INST{j}_TOP3_HOLD').replace('|', ' / ')
-        lines += [
-            "",
-            f"*{name}* _{period} 기준_",
-            f"   섹터: `{sectors}`",
-            f"   TOP3: `{holds}`",
-        ]
-    lines += ["", "⚠️ _퀀트 모델 자동 산출 — 투자 손익 책임은 본인에게 있습니다_"]
-    return '\n'.join(lines)
-
-
-def build_inst_korean_section(d):
-    """기관 연동 한국 종목 TOP5 섹션."""
-    if not g(d, 'I0_NAME'):
-        return ''
-    lines = [
-        "📍 *기관 연동 한국 종목 TOP 5*",
-        "_글로벌 기관 섹터 집중도 연동 퀀트 선정_",
-    ]
-    for i in range(5):
-        if not g(d, f'I{i}_NAME'):
-            break
-        lines += [
-            "",
-            f"{RANK_ICO[i]} *{g(d,f'I{i}_NAME')}* `{g(d,f'I{i}_CODE')}` {g(d,f'I{i}_MKT')} · {g(d,f'I{i}_SECTOR')}{held_mark(d,'I',i)}",
-            f"   현재가 `{fi(g(d,f'I{i}_CLOSE'))}원`  주간 `{sp(g(d,f'I{i}_R1W'))}`  12주 `{sp(g(d,f'I{i}_R12W'))}`",
-            f"   RSI `{g(d,f'I{i}_RSI')}`  거래량 `{g(d,f'I{i}_VOLR')}배`",
-            f"   매수 `{fi(g(d,f'I{i}_ENTRY'))}`  손절 `{fi(g(d,f'I{i}_STOP'))}`({g(d,f'I{i}_STOP_PCT')}%){qty_txt(d,'I',i)}",
-            f"   목표1 `{fi(g(d,f'I{i}_T1'))}`(+{g(d,f'I{i}_T1_PCT')}%)  목표2 `{fi(g(d,f'I{i}_T2'))}`(+{g(d,f'I{i}_T2_PCT')}%)",
-        ]
-    lines += ["", "⚠️ _퀀트 모델 자동 산출 — 투자 손익 책임은 본인에게 있습니다_"]
-    return '\n'.join(lines)
-
-
-def build_kr_investor_section(d):
-    """한국 외국인/기관/개인 종목별 순매수/매도 TOP5 메시지."""
-    fb  = int(g(d, 'KR_FOREIGN_BUY_COUNT')  or 0)
-    fs  = int(g(d, 'KR_FOREIGN_SELL_COUNT') or 0)
-    ib  = int(g(d, 'KR_INST_BUY_COUNT')     or 0)
-    is_ = int(g(d, 'KR_INST_SELL_COUNT')    or 0)
-    pb  = int(g(d, 'KR_INDIV_BUY_COUNT')    or 0)
-    ps  = int(g(d, 'KR_INDIV_SELL_COUNT')   or 0)
-    if fb == 0 and fs == 0 and ib == 0 and is_ == 0 and pb == 0 and ps == 0:
-        return ''
-
-    lines = ["🇰🇷 *한국 시장 외국인/기관/개인 매매 동향*",
-             "_당일 순매수/매도 거래대금 기준 \\(KRX 공식 데이터\\)_"]
-
-    def _stock_rows(prefix, count):
-        rows = []
-        for i in range(min(count, 5)):
-            v = g(d, f'{prefix}{i}')
-            if not v: continue
-            p = v.split('|')
-            name  = p[0]; code = p[1] if len(p) > 1 else ''
-            net_b = int(p[2]) if len(p) > 2 else 0
-            rows.append(f"{RANK_ICO[i]} *{name}* `{code}`  `{net_b:,}억원`")
-        return rows
-
-    if fb > 0:
-        lines += ["", "━━━ 🌏 외국인 순매수 TOP5 📈 ━━━"]
-        lines += _stock_rows('KR_FOREIGN_BUY_', fb)
-    if fs > 0:
-        lines += ["", "━━━ 🌏 외국인 순매도 TOP5 📉 ━━━"]
-        lines += _stock_rows('KR_FOREIGN_SELL_', fs)
-    if ib > 0:
-        lines += ["", "━━━ 🏦 기관 순매수 TOP5 📈 ━━━"]
-        lines += _stock_rows('KR_INST_BUY_', ib)
-    if is_ > 0:
-        lines += ["", "━━━ 🏦 기관 순매도 TOP5 📉 ━━━"]
-        lines += _stock_rows('KR_INST_SELL_', is_)
-    if pb > 0:
-        lines += ["", "━━━ 👤 개인 순매수 TOP5 📈 ━━━"]
-        lines += _stock_rows('KR_INDIV_BUY_', pb)
-    if ps > 0:
-        lines += ["", "━━━ 👤 개인 순매도 TOP5 📉 ━━━"]
-        lines += _stock_rows('KR_INDIV_SELL_', ps)
-
-    lines += ["", "⚠️ _퀀트 모델 자동 산출 — 투자 손익 책임은 본인에게 있습니다_"]
-    return '\n'.join(lines)
-
-
-def build_inst_changes_section(d):
-    """글로벌 기관 전분기 대비 섹터 투자 변화 메시지."""
-    count = int(g(d, 'INST_CHNG_COUNT') or 0)
-    if count == 0:
-        return ''
-    lines = [
-        "📊 *글로벌 기관 투자 변화 분석*",
-        "_전분기 대비 섹터 비중 변화 \\(SEC 13F 비교\\)_",
-    ]
-    for i in range(min(count, 11)):
-        fund   = g(d, f'INST_CHNG_{i}_FUND')
-        if not fund:
-            break
-        period = g(d, f'INST_CHNG_{i}_PERIOD')
-        lines += ["", f"*{fund}* _{period} 기준_"]
-        for j in range(3):
-            sec  = g(d, f'INST_CHNG_{i}_S{j}')
-            dval = g(d, f'INST_CHNG_{i}_S{j}_D')
-            dir_ = g(d, f'INST_CHNG_{i}_S{j}_DIR')
-            if not sec:
-                break
-            ico = "▲" if '증가' in dir_ else "▼"
-            lines.append(f"   {ico} `{sec}` {dval}")
-    lines += ["", "⚠️ _퀀트 모델 자동 산출 — 투자 손익 책임은 본인에게 있습니다_"]
-    return '\n'.join(lines)
-
-
-def build_detail(d, pfx, i):
-    clean = lambda s: re.sub(r'<[^>]+>', '', s)
-    reasons_raw = g(d, f'{pfx}{i}_REASONS')
-    reasons = [clean(r) for r in reasons_raw.split('|')] if reasons_raw else []
-    caution = clean(g(d, f'{pfx}{i}_CAUTION'))
-    model_label = "🟢 안정 대장주" if pfx == 'S' else ("🔵 ETF 추천" if pfx == 'E' else "🔴 모멘텀")
-    lines = [
-        f"{model_label} {RANK_ICO[i]} *{g(d,f'{pfx}{i}_NAME')}* `{g(d,f'{pfx}{i}_CODE')}` {g(d,f'{pfx}{i}_MKT')}",
-        "",
-        "*[지표]*",
-        f"현재가 `{fi(g(d,f'{pfx}{i}_CLOSE'))}원`  점수 `{g(d,f'{pfx}{i}_SCORE')}`",
-        f"주간 `{sp(g(d,f'{pfx}{i}_R1W'))}`  4주 `{sp(g(d,f'{pfx}{i}_R4W'))}`  12주 `{sp(g(d,f'{pfx}{i}_R12W'))}`",
-        f"RSI `{g(d,f'{pfx}{i}_RSI')}`  거래량 `{g(d,f'{pfx}{i}_VOLR')}배`",
-        f"MA20 `{fi(g(d,f'{pfx}{i}_MA20'))}`  MA60 `{fi(g(d,f'{pfx}{i}_MA60'))}`",
-        "",
-        "*[매매 레벨]*",
-        f"매수  `{fi(g(d,f'{pfx}{i}_ENTRY'))}원`",
-        f"손절  `{fi(g(d,f'{pfx}{i}_STOP'))}원` ({g(d,f'{pfx}{i}_STOP_PCT')}%)",
-        f"목표1 `{fi(g(d,f'{pfx}{i}_T1'))}원` (+{g(d,f'{pfx}{i}_T1_PCT')}%)",
-        f"목표2 `{fi(g(d,f'{pfx}{i}_T2'))}원` (+{g(d,f'{pfx}{i}_T2_PCT')}%)",
-    ]
-    if reasons:
-        lines += ["", "*[선정 이유]*"] + [f"- {r}" for r in reasons[:4]]
-    if caution:
-        lines += ["", f"⚠️ {caution}"]
     return '\n'.join(lines)
 
 
@@ -399,31 +321,25 @@ def send_msg(text):
         return False
 
 
-def send_file(data_file, date):
-    report = os.path.join(REPORT_DIR, f'report_{date}.html')
-    if not os.path.exists(report):
-        report = data_file
+def send_file(path, caption):
     try:
-        with open(report, 'rb') as fp:
+        with open(path, 'rb') as fp:
             r = requests.post(f"{TELEGRAM_API}/sendDocument",
-                data={'chat_id': CHAT_ID, 'caption': f"{date} 전체 리포트"},
-                files={'document': (os.path.basename(report), fp, 'text/html')},
+                data={'chat_id': CHAT_ID, 'caption': caption},
+                files={'document': (os.path.basename(path), fp, 'text/html')},
                 timeout=60)
         ok = r.status_code == 200 and r.json().get('ok')
         if not ok:
-            print(f"  [파일 실패] {r.text[:150]}")
+            print(f"  [파일 전송 실패] {r.text[:150]}")
         return ok
-    except requests.exceptions.Timeout:
-        print("  파일 업로드 타임아웃")
-        return False
     except Exception as e:
-        print(f"  파일 오류: {type(e).__name__}")
+        print(f"  [파일 전송 오류] {type(e).__name__}: {e}")
         return False
 
 
 def run():
     print("\n" + "="*50)
-    print("  텔레그램 리포트 전송")
+    print("  텔레그램 데일리 브리핑 전송")
     print("="*50)
 
     try:
@@ -434,58 +350,24 @@ def run():
         print(f"  봇 연결 실패: {e}")
         return
 
-    d    = load_data()
-    date = g(d, 'DATE')
+    print("  데이터 수집 중...")
+    data = collect()
 
-    print("  [1] TOP5 요약 전송...")
-    ok1 = send_msg(build_summary(d))
+    print("  [1] 요약 메시지 전송...")
+    ok1 = send_msg(build_message(data))
     print(f"  -> {'완료' if ok1 else '실패'}")
 
-    perf_msg = build_performance_section(d)
-    if perf_msg:
-        print("  [1-b] 지난 추천 성과 전송...")
-        ok1b = send_msg(perf_msg)
-        print(f"  -> {'완료' if ok1b else '실패'}")
+    print("  [2] HTML 리포트 생성...")
+    try:
+        import build_daily_html as bh
+        path = bh.build(data['date'], data['indexes'], data['holdings'], data['flows'])
+        print(f"  -> {path}")
+        print("  [3] HTML 리포트 전송...")
+        ok2 = send_file(path, f"{data['date']} 일일 시황 리포트")
+        print(f"  -> {'완료' if ok2 else '실패'}")
+    except Exception as e:
+        print(f"  [경고] HTML 리포트 실패: {type(e).__name__}: {e}")
 
-    print("  [2] HTML 파일 전송...")
-    ok2 = send_file(d['__file__'], date)
-    if ok2:
-        print("  -> 완료")
-    else:
-        print("  -> 파일 불가, 종목 상세 텍스트로 대체 전송")
-        for pfx, label in [('S','안정'), ('M','모멘텀'), ('E','ETF')]:
-            for i in range(5):
-                if not g(d, f'{pfx}{i}_NAME'):
-                    break
-                ok = send_msg(build_detail(d, pfx, i))
-                name = g(d, f'{pfx}{i}_NAME')
-                print(f"     [{label}] {i+1}. {name}: {'OK' if ok else 'FAIL'}")
-
-    inst_msg = build_institutional_section(d)
-    if inst_msg:
-        print("  [3] 글로벌 기관 포트폴리오 동향 전송...")
-        ok3 = send_msg(inst_msg)
-        print(f"  -> {'완료' if ok3 else '실패'}")
-
-    inst_kr_msg = build_inst_korean_section(d)
-    if inst_kr_msg:
-        print("  [4] 기관연동 한국 종목 TOP5 전송...")
-        ok4 = send_msg(inst_kr_msg)
-        print(f"  -> {'완료' if ok4 else '실패'}")
-
-    kr_inv_msg = build_kr_investor_section(d)
-    if kr_inv_msg:
-        print("  [5] 한국 외국인/기관 섹터 매매 동향 전송...")
-        ok5 = send_msg(kr_inv_msg)
-        print(f"  -> {'완료' if ok5 else '실패'}")
-
-    inst_chng_msg = build_inst_changes_section(d)
-    if inst_chng_msg:
-        print("  [6] 글로벌 기관 투자 변화 전송...")
-        ok6 = send_msg(inst_chng_msg)
-        print(f"  -> {'완료' if ok6 else '실패'}")
-
-    print("\n  전송 완료! 텔레그램을 확인하세요.")
     print("="*50)
 
 

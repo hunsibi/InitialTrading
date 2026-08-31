@@ -87,7 +87,15 @@ def main():
     run_step("[2/4] 퀀트 분석 실행 중...", "weekly_analysis.py")
     run_step("[3/4-a] 리포트 생성 중...", "generate_report.py")
     run_step("[3/4-b] HTML 빌드 중...", "build_html.py")
-    run_step("[4/4] 텔레그램 전송 중...", "send_telegram.py")
+
+    # 데일리 브리핑은 이 파이프라인 산출물과 무관하게 라이브 데이터로 동작한다.
+    # CI에서는 파이프라인보다 먼저 별도 스텝으로 보내므로(중복 방지) 여기서는 건너뛴다.
+    if os.environ.get('SKIP_TELEGRAM'):
+        print(f"\n{'='*50}")
+        print("  [4/4] 텔레그램 전송 — SKIP_TELEGRAM 설정으로 건너뜀")
+        print('='*50)
+    else:
+        run_step("[4/4] 텔레그램 전송 중...", "send_telegram.py")
 
     # GitHub Issue 생성 (로컬 전용 — GitHub Actions에서는 HTML 커밋 후 별도 step에서 실행)
     if not os.environ.get('GITHUB_ACTIONS'):
