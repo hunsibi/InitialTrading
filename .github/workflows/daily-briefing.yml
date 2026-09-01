@@ -1,0 +1,93 @@
+name: 텔레그램 데일리 브리핑
+
+# GitHub 예약 실행은 러너 부하가 높으면 지연되거나 아예 취소(drop)된다.
+# 실제로 30~40분 지연이 상시였고 10시간 넘게 밀리거나 누락된 날도 있었다.
+# 그래서 시간을 벌려 3번 시도하고, 그날 이미 보냈으면 건너뛴다(중복 방지).
+# 분을 :00/:30에서 비켜둔 것도 의도 — 정각은 전 세계 요청이 몰려 가장 잘 밀린다.
+on:
+  schedule:
+    - cron: '37 11 * * 1-5'   # 20:37 KST — 시간외 종료(20:00) 이후 1차
+    - cron: '17 12 * * 1-5'   # 21:17 KST — 2차 재시도
+    - cron: '57 12 * * 1-5'   # 21:57 KST — 3차 재시도
+  workflow_dispatch:
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 한국 기준 날짜 계산
+        id: date
+        run: echo "kst=$(TZ=Asia/Seoul date +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      # 같은 날 이미 성공했으면 마커 캐시가 남아 있다 → 전송 건너뜀
+      - name: 오늘 발송 여부 확인
+        id: guard
+        uses: actions/cache/restore@v4
+        with:
+          path: .briefing-marker
+          key: briefing-sent-${{ steps.date.outputs.kst }}
+          lookup-only: true
+
+      - name: 발송 여부 판단
+        id: decide
+        run: |
+          if [ "${{ steps.guard.outputs.cache-hit }}" = "true" ] \
+             && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "  ${{ steps.date.outputs.kst }} 이미 발송됨 — 건너뜀"
+            echo "send=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "  ${{ steps.date.outputs.kst }} 발송 진행"
+            echo "send=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Python 3.11 셋업
+        if: steps.decide.outputs.send == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      # 브리핑은 MongoDB·기관 데이터가 필요 없어 필요한 것만 설치한다
+      - name: 패키지 설치
+        if: steps.decide.outputs.send == 'true'
+        run: pip install pandas requests finance-datareader pykrx yfinance
+
+      - name: 설정 파일 생성 (Secrets → .py)
+        if: steps.decide.outputs.send == 'true'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          KRX_ID_VAL: ${{ secrets.KRX_ID }}
+          KRX_PW_VAL: ${{ secrets.KRX_PW }}
+        run: |
+          python - <<'PYEOF'
+          import os
+          with open('telegram_config.py', 'w') as f:
+              f.write(f'BOT_TOKEN = {repr(os.environ.get("TELEGRAM_BOT_TOKEN",""))}\n')
+              f.write(f'CHAT_ID   = {repr(os.environ.get("TELEGRAM_CHAT_ID",""))}\n')
+          with open('krx_config.py', 'w') as f:
+              f.write(f'KRX_ID = {repr(os.environ.get("KRX_ID_VAL",""))}\n')
+              f.write(f'KRX_PW = {repr(os.environ.get("KRX_PW_VAL",""))}\n')
+          PYEOF
+
+      - name: 브리핑 전송
+        if: steps.decide.outputs.send == 'true'
+        run: python send_telegram.py
+
+      # 전송이 실패하면 이 단계는 실행되지 않는다 → 마커가 안 남아 다음 회차가 재시도
+      - name: 발송 마커 기록
+        if: steps.decide.outputs.send == 'true' && success()
+        run: |
+          mkdir -p .briefing-marker
+          date -u +%FT%TZ > .briefing-marker/sent
+
+      - name: 발송 마커 저장
+        if: steps.decide.outputs.send == 'true' && success()
+        uses: actions/cache/save@v4
+        with:
+          path: .briefing-marker
+          key: briefing-sent-${{ steps.date.outputs.kst }}

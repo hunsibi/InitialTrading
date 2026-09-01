@@ -2,10 +2,10 @@ name: 퀀트 분석 파이프라인
 
 on:
   schedule:
-    # 평일 매일 11:30 UTC = 20:30 KST
-    # 시간외(넥스트레이드 애프터마켓)가 20:00에 끝나므로 그 뒤에 실행해야
-    # 시간외 '최종' 체결가가 잡힌다. 17:00에 돌리면 장중 값이 찍힘.
-    - cron: '30 11 * * 1-5'
+    # 평일 매일 13:20 UTC = 22:20 KST
+    # 텔레그램 브리핑은 daily-briefing.yml이 20:37부터 담당하므로, 무거운
+    # 이 파이프라인(리포트·Issue·MongoDB 캐시)은 그 뒤로 미뤄 러너 경합을 피한다.
+    - cron: '20 13 * * 1-5'
   workflow_dispatch:
 
 jobs:
@@ -85,14 +85,11 @@ jobs:
               f.write(f'KRX_PW = {repr(os.environ.get("KRX_PW_VAL",""))}\n')
           PYEOF
 
-      # 데일리 브리핑은 MongoDB/파이프라인 산출물이 필요 없는 라이브 조회라
-      # 무거운 파이프라인보다 먼저 보낸다 — 뒤 단계가 실패해도 브리핑은 도착한다.
-      - name: 텔레그램 데일리 브리핑 전송
-        run: python send_telegram.py
-
+      # 텔레그램 브리핑은 daily-briefing.yml이 전담한다(재시도·중복방지 포함).
+      # 여기서 보내면 이중 발송이 되므로 SKIP_TELEGRAM으로 반드시 막아둔다.
       - name: 파이프라인 실행
         env:
-          SKIP_TELEGRAM: '1'        # 위에서 이미 보냈으므로 중복 전송 방지
+          SKIP_TELEGRAM: '1'
         run: python run_pipeline.py
 
       - name: HTML 리포트 커밋 (reports/ 폴더)
