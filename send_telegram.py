@@ -210,38 +210,108 @@ def us_row(name, ticker, after=False):
         return None
 
 
+def market_date():
+    """브리핑이 다루는 장 기준일.
+
+    자정 넘어 실행되면(러너 지연) 달력상 날짜는 다음 날이지만 데이터는 전 거래일
+    것이다. 장 시작(09:00) 전이면 전날로 되돌리고, 주말이면 직전 금요일로 당긴다.
+    """
+    n = now_kst()
+    d = n if n.hour >= 9 else (n - timedelta(days=1))
+    while d.weekday() >= 5:                            # 토/일 → 직전 금요일
+        d -= timedelta(days=1)
+    return d
+
+
+def _pykrx_flows(code, days):
+    """KRX 공식 순매수 거래대금(억원). KRX_ID/KRX_PW 필요."""
+    kid = os.environ.get('KRX_ID', '')
+    kpw = os.environ.get('KRX_PW', '')
+    if not (kid and kpw):
+        return []
+    from pykrx import stock as pykrx_stock
+    today = market_date()
+    start = (today - timedelta(days=20)).strftime('%Y%m%d')
+    end   = today.strftime('%Y%m%d')
+    df = pykrx_stock.get_market_trading_value_by_date(start, end, code)
+    if df is None or df.empty:
+        return []
+    df = df.tail(days)
+    return [{
+        'date':      idx.strftime('%m-%d'),
+        'full_date': idx.strftime('%Y-%m-%d'),
+        'foreign':   float(r.get('외국인합계', 0)) / 1e8,
+        'inst':      float(r.get('기관합계', 0)) / 1e8,
+        'indiv':     float(r.get('개인', 0)) / 1e8,
+        'est':       False,
+    } for idx, r in df.iterrows()]
+
+
+def _naver_flows(code, days):
+    """네이버 순매수 '수량' × 종가로 환산한 추정 거래대금(억원).
+
+    KRX는 주기적으로 비밀번호 변경을 강제해 로그인이 끊긴다. 그때도 수급이
+    비지 않도록 자격증명 없이 쓰는 폴백. 실제 체결가가 아닌 종가 환산이라 추정치.
+    """
+    r = requests.get(f'https://m.stock.naver.com/api/stock/{code}/trend',
+                     headers={'User-Agent': 'Mozilla/5.0',
+                              'Referer': 'https://finance.naver.com/'},
+                     timeout=12)
+    if r.status_code != 200:
+        return []
+    rows = r.json() or []
+    if not isinstance(rows, list):
+        return []
+
+    def num(v):
+        try:
+            return float(str(v).replace(',', '').replace('+', ''))
+        except (TypeError, ValueError):
+            return 0.0
+
+    out = []
+    for row in rows:
+        bd = str(row.get('bizdate', ''))
+        if len(bd) != 8:
+            continue
+        close = num(row.get('closePrice'))
+        if close <= 0:
+            continue
+        out.append({
+            'date':      f'{bd[4:6]}-{bd[6:]}',
+            'full_date': f'{bd[:4]}-{bd[4:6]}-{bd[6:]}',
+            'foreign':   num(row.get('foreignerPureBuyQuant'))  * close / 1e8,
+            'inst':      num(row.get('organPureBuyQuant'))      * close / 1e8,
+            'indiv':     num(row.get('individualPureBuyQuant')) * close / 1e8,
+            'est':       True,
+        })
+    out.sort(key=lambda x: x['full_date'])             # 네이버는 최신순 → 오름차순
+    return out[-days:]
+
+
 def weekly_flows(code, days=5):
-    """pykrx 기반 최근 N거래일 외국인/기관/개인 일별 순매수 거래대금(억원)."""
+    """최근 N거래일 외국인/기관/개인 일별 순매수(억원).
+
+    KRX 공식값을 우선 쓰고, 로그인 실패 등으로 비면 네이버 추정치로 대체한다.
+    """
     try:
-        kid = os.environ.get('KRX_ID', '')
-        kpw = os.environ.get('KRX_PW', '')
-        if not (kid and kpw):
-            return []
-        from pykrx import stock as pykrx_stock
-        today = now_kst()
-        if today.weekday() >= 5:                       # 주말 → 직전 금요일
-            today -= timedelta(days=today.weekday() - 4)
-        start = (today - timedelta(days=20)).strftime('%Y%m%d')
-        end   = today.strftime('%Y%m%d')
-        df = pykrx_stock.get_market_trading_value_by_date(start, end, code)
-        if df is None or df.empty:
-            return []
-        df = df.tail(days)
-        return [{
-            'date':      idx.strftime('%m-%d'),
-            'full_date': idx.strftime('%Y-%m-%d'),
-            'foreign':   float(r.get('외국인합계', 0)) / 1e8,
-            'inst':      float(r.get('기관합계', 0)) / 1e8,
-            'indiv':     float(r.get('개인', 0)) / 1e8,
-        } for idx, r in df.iterrows()]
+        rows = _pykrx_flows(code, days)
+        if rows:
+            return rows
+        print(f"  [정보] {code} KRX 수급 없음 — 네이버 추정치로 대체")
     except Exception as e:
-        print(f"  [경고] {code} 수급 조회 실패: {type(e).__name__}: {e}")
+        print(f"  [경고] {code} KRX 수급 실패({type(e).__name__}) — 네이버로 대체")
+    try:
+        return _naver_flows(code, days)
+    except Exception as e:
+        print(f"  [경고] {code} 네이버 수급도 실패: {type(e).__name__}: {e}")
         return []
 
 
 def collect() -> dict:
     """텔레그램 메시지와 HTML 리포트가 함께 쓰는 데이터를 한 번만 수집."""
-    data = {'date': now_kst().strftime('%Y-%m-%d'),
+    # 기준일은 벽시계가 아니라 장 기준일. 자정 넘겨 실행돼도 전 거래일로 표기된다.
+    data = {'date': market_date().strftime('%Y-%m-%d'),
             'indexes': [], 'holdings': [], 'flows': []}
 
     for name, code in KR_INDEXES:
@@ -292,6 +362,9 @@ def build_message(data) -> str:
         lines.append(f"   _{len(f)}일 누적_  외국인 `{wf:+,.0f}억`  기관 `{wi:+,.0f}억`  개인 `{wp:+,.0f}억`")
     if not any_flow:
         lines.append("_데이터 수집 실패 (KRX_ID/KRX_PW 확인 필요)_")
+    elif any(x.get('est') for c in data['flows'] for x in c['flows']):
+        # 값의 출처를 숨기지 않는다 — KRX 로그인이 끊긴 동안은 종가 환산 추정치다
+        lines.append("_※ KRX 로그인 불가 → 네이버 순매수 수량 × 종가 환산 추정치_")
     lines.append("_일별 그래프는 첨부 HTML 리포트 첫 화면에 있습니다_")
 
     # 2. 주요 지수 (날짜 병기 — 소스가 최신일을 못 주면 바로 드러나도록)

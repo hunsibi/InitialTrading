@@ -1,14 +1,22 @@
 name: 텔레그램 데일리 브리핑
 
-# GitHub 예약 실행은 러너 부하가 높으면 지연되거나 아예 취소(drop)된다.
-# 실제로 30~40분 지연이 상시였고 10시간 넘게 밀리거나 누락된 날도 있었다.
-# 그래서 시간을 벌려 3번 시도하고, 그날 이미 보냈으면 건너뛴다(중복 방지).
-# 분을 :00/:30에서 비켜둔 것도 의도 — 정각은 전 세계 요청이 몰려 가장 잘 밀린다.
+# GitHub 예약 실행은 정시에 오지 않는다. 이 저장소 실측(09-08~09-11)은
+# 1차 cron이 매번 3시간 30분가량 밀려, 20:37 예약이 다음 날 00:07에 실행됐다.
+#
+# 그래서 두 가지를 같이 건다.
+#   1) 지연을 역산해 이른 시각에도 cron을 걸어둔다 (17:30 + 3.5h ≈ 21:00 KST)
+#   2) 실제 실행 시각이 유효 구간(20:00~익일 09:00 KST)일 때만 보낸다
+# GitHub가 정시에 돌든 3시간 밀리든, 처음으로 구간 안에 들어온 회차가 보낸다.
+# 구간 밖이면 마커를 남기지 않으므로 다음 회차가 이어받는다.
+#
+# 20:00 하한은 넥스트레이드 애프터마켓 종료 시각이다. 그 전에 보내면
+# 시간외 '최종' 체결가가 아닌 장중 값이 찍힌다 — 낮추지 말 것.
 on:
   schedule:
-    - cron: '37 11 * * 1-5'   # 20:37 KST — 시간외 종료(20:00) 이후 1차
-    - cron: '17 12 * * 1-5'   # 21:17 KST — 2차 재시도
-    - cron: '57 12 * * 1-5'   # 21:57 KST — 3차 재시도
+    - cron: '30 8 * * 1-5'    # 17:30 KST — 지연 시 약 21:00 도착 (주 경로)
+    - cron: '30 9 * * 1-5'    # 18:30 KST — 지연 시 약 22:00
+    - cron: '5 11 * * 1-5'    # 20:05 KST — 지연이 없을 때의 주 경로
+    - cron: '35 12 * * 1-5'   # 21:35 KST — 마지막 보루
   workflow_dispatch:
 
 jobs:
@@ -19,28 +27,56 @@ jobs:
       - name: 코드 체크아웃
         uses: actions/checkout@v4
 
-      - name: 한국 기준 날짜 계산
-        id: date
-        run: echo "kst=$(TZ=Asia/Seoul date +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+      # 장 기준일 = 데이터가 속한 거래일. 자정 넘겨 실행되면 전날이고,
+      # 주말로 밀렸으면 직전 금요일이다. 마커 키도 이 날짜로 잡아야
+      # 00:07 실행이 다음 날로 오인돼 이중 발송되지 않는다.
+      - name: 장 기준일 · 발송 구간 판정
+        id: gate
+        run: |
+          H=$(TZ=Asia/Seoul date +%-H)
+          NOW=$(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M')
+          if [ "$H" -ge 9 ]; then
+            D=$(TZ=Asia/Seoul date +%Y-%m-%d)
+          else
+            D=$(TZ=Asia/Seoul date -d 'yesterday' +%Y-%m-%d)
+          fi
+          while [ "$(date -d "$D" +%u)" -ge 6 ]; do
+            D=$(date -d "$D -1 day" +%Y-%m-%d)
+          done
+          echo "  현재 KST $NOW · 장 기준일 $D"
+          echo "date=$D" >> "$GITHUB_OUTPUT"
 
-      # 같은 날 이미 성공했으면 마커 캐시가 남아 있다 → 전송 건너뜀
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "  수동 실행 — 구간 검사 생략"
+            echo "in_window=true" >> "$GITHUB_OUTPUT"
+          elif [ "$H" -ge 20 ] || [ "$H" -lt 9 ]; then
+            echo "  발송 구간 안 (20:00~익일 09:00)"
+            echo "in_window=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "  아직 이름 — 시간외 종료(20:00) 전이라 건너뜀. 다음 회차가 처리"
+            echo "in_window=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: 오늘 발송 여부 확인
         id: guard
+        if: steps.gate.outputs.in_window == 'true'
         uses: actions/cache/restore@v4
         with:
           path: .briefing-marker
-          key: briefing-sent-${{ steps.date.outputs.kst }}
+          key: briefing-sent-${{ steps.gate.outputs.date }}
           lookup-only: true
 
       - name: 발송 여부 판단
         id: decide
         run: |
-          if [ "${{ steps.guard.outputs.cache-hit }}" = "true" ] \
-             && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
-            echo "  ${{ steps.date.outputs.kst }} 이미 발송됨 — 건너뜀"
+          if [ "${{ steps.gate.outputs.in_window }}" != "true" ]; then
+            echo "send=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.guard.outputs.cache-hit }}" = "true" ] \
+               && [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            echo "  ${{ steps.gate.outputs.date }} 이미 발송됨 — 건너뜀"
             echo "send=false" >> "$GITHUB_OUTPUT"
           else
-            echo "  ${{ steps.date.outputs.kst }} 발송 진행"
+            echo "  ${{ steps.gate.outputs.date }} 발송 진행"
             echo "send=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -90,4 +126,4 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .briefing-marker
-          key: briefing-sent-${{ steps.date.outputs.kst }}
+          key: briefing-sent-${{ steps.gate.outputs.date }}

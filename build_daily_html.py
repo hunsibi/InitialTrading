@@ -148,8 +148,10 @@ def flow_table(flows):
         tds = ''.join(cell(f[key]) for f in flows)
         tds += cell(sum(f[key] for f in flows), 'tot')
         rows += (f'<tr><th class="rowh"><i class="sw s{si}"></i>{name}</th>{tds}</tr>')
+    est = ' · <b>추정치</b>(네이버 순매수 수량 × 종가 환산)' if any(
+        f.get('est') for f in flows) else ''
     return (f'<table class="tbl flow"><caption>순매수 거래대금 (억원) · '
-            f'양수=순매수, 음수=순매도</caption>'
+            f'양수=순매수, 음수=순매도{est}</caption>'
             f'<thead><tr><th></th>{head}</tr></thead><tbody>{rows}</tbody></table>')
 
 
